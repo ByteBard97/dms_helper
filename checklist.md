@@ -1,22 +1,22 @@
 # Phase 1 Checklist: Real-time Transcription
 
-- [ ] **Research Whisper Implementation:**
-  - [x] Identify suitable Python libraries for real-time streaming transcription with GPU support (`ufal/whisper_streaming` selected).
-  - [ ] Determine appropriate Whisper model size (e.g., `small`, `medium`) for balance between speed and accuracy on RTX 4070.
-- [ ] **Setup Environment:**
-  - [ ] Create Python virtual environment.
-  - [ ] Install necessary base libraries (`ufal/whisper_streaming`, `faster-whisper`, CUDA prerequisites, `sounddevice`/`pyaudio`).
-- [ ] **Implement Audio Input:**
-  - [ ] Write code to capture audio from the default microphone using `sounddevice` or `pyaudio`.
-  - [ ] Ensure audio is captured in the format required by the Whisper library (16kHz, mono, 16-bit PCM).
-- [ ] **Integrate Whisper Streaming:**
-  - [ ] Initialize the `ufal/whisper_streaming` processor with the chosen model and GPU settings.
-  - [ ] Feed captured audio chunks to the processor.
-- [ ] **Process and Display Transcription:**
-  - [ ] Retrieve transcription segments from the Whisper processor.
-  - [ ] Print the transcribed text to the console in real-time (or near real-time).
+- [x] **Research Whisper Implementation:**
+  - [x] Identify suitable Python libraries for real-time streaming transcription with GPU support (`WhisperLive` client/server chosen).
+  - [x] Determine appropriate Whisper model size (`small.en` selected).
+- [x] **Setup Environment:**
+  - [x] Create Python virtual environment (`.venv`).
+  - [x] Install necessary base libraries (See `requirements.txt` - NOTE: Needs `numpy`, `av`, `websocket-client` added).
+- [x] **Implement Audio Input:**
+  - [x] Write code to capture audio from the default microphone (Handled by vendored `WhisperLive` client using `pyaudio`).
+  - [x] Ensure audio is captured in the format required by the Whisper server (Handled by client).
+- [x] **Integrate Whisper Streaming:**
+  - [x] Initialize the `TranscriptionClient` to connect to the `WhisperLive` server.
+  - [x] Feed captured audio chunks to the server (Handled by `client()` call).
+- [x] **Process and Display Transcription:**
+  - [x] Retrieve transcription segments from the `WhisperLive` server.
+  - [x] Print the transcribed text to the console in real-time (via client's `utils.print_transcript`).
 - [ ] **Evaluate Performance:**
-  - [ ] Test the system by speaking into the microphone.
-  - [ ] Assess the perceived latency between speaking and seeing the transcription.
-  - [ ] Evaluate the accuracy of the transcription.
+  - [x] Test the system by speaking into the microphone (User confirmed working).
+  - [x] Assess the perceived latency between speaking and seeing the transcription (User confirmed good).
+  - [ ] Evaluate the accuracy of the transcription (User evaluation needed).
   - [ ] *Optional: Add basic timing metrics to measure processing delay.* 
