@@ -1,4 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Cursor Coding Rules for D&D Helper
+
+VERY IMPORTANT!!!!! DO NOT WRITE ANY TRY BLOCKS! EVER!!!!!!!!!!!
 
 ## General Principles
 
@@ -24,7 +31,6 @@
 ## Error Handling
 
 *   **NO `try...except` BLOCKS:** Do not use `try...except` blocks for general error catching. Let exceptions propagate naturally during development to identify root causes quickly.
-    *   We will revisit this rule if specific, recoverable errors (e.g., network timeouts, specific device errors) prove too disruptive. For now, allow crashes.
 
 ## Dependencies & Libraries
 
@@ -40,9 +46,11 @@
 
 ## Version Control (Git)
 
-*   **Initialization:** The user will initialize the Git repository.
 *   **Committing:** Code changes should only be committed when:
     1.  Explicitly instructed by the user, OR
     2.  After all relevant tests have been run and have passed successfully.
 *   **Testing Before Commit:** Do not commit changes without first running the relevant tests, unless explicitly overridden by the user.
 *   **Commit Messages:** Write clear and concise commit messages explaining the purpose of the changes. 
+
+VERY IMPORTANT!!!!! DO NOT WRITE ANY TRY BLOCKS! EVER!!!!!!!!!!!
+
