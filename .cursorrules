@@ -34,6 +34,7 @@
 
 ## Development Process
 
+*   **Activate Environment:** Always ensure the project's virtual environment (`.venv`) is activated before running any scripts or installing dependencies.
 *   **Sanity Checks:** Before adding significant new features, ensure the current functionality is working correctly (as outlined in the `checklist.md`).
 *   **Testing:** (Future Phase) Plan for unit and integration tests for core components. 
 

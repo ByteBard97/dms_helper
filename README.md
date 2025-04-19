@@ -31,8 +31,27 @@ This application listens to the DM's voice during a game session, transcribes it
 *(Instructions will be added here)*
 
 1.  Clone the repository.
-2.  Install dependencies (see `requirements.txt` - requires CUDA/cuDNN).
-3.  Configure API keys (if necessary).
+2.  Create and **activate** the Python virtual environment (`.venv`):
+    ```bash
+    # Create the venv (using your Python 3.10+)
+    python -m venv .venv 
+    # Activate (Windows PowerShell)
+    .\.venv\Scripts\Activate.ps1 
+    # Or Activate (Bash/Git Bash/MacOS)
+    # source .venv/bin/activate 
+    ```
+    **Note:** Ensure the virtual environment is active in your terminal for all subsequent steps.
+3.  Install dependencies (see `requirements.txt` - requires CUDA/cuDNN):
+    ```bash
+    # Make sure pip is up-to-date in the venv
+    python -m pip install --upgrade pip
+    # Install vendored library (if necessary - currently whisper_streaming)
+    # pip install git+https://github.com/ufal/whisper_streaming # (Doesn't work directly)
+    # Instead, clone it into vendor/ (already done)
+    # Install requirements
+    pip install -r requirements.txt
+    ```
+4.  Configure API keys (if necessary).
 
 ## Usage
 

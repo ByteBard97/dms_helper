@@ -160,3 +160,6 @@ Thumbs.db
 *.env # Reiterate for emphasis
 *.wav # Temporary audio files
 models/ # Ignore downloaded Whisper models if stored locally 
+
+# Vendor libraries
+vendor/ 
