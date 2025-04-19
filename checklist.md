@@ -1,0 +1,22 @@
+# Phase 1 Checklist: Real-time Transcription
+
+- [ ] **Research Whisper Implementation:**
+  - [x] Identify suitable Python libraries for real-time streaming transcription with GPU support (`ufal/whisper_streaming` selected).
+  - [ ] Determine appropriate Whisper model size (e.g., `small`, `medium`) for balance between speed and accuracy on RTX 4070.
+- [ ] **Setup Environment:**
+  - [ ] Create Python virtual environment.
+  - [ ] Install necessary base libraries (`ufal/whisper_streaming`, `faster-whisper`, CUDA prerequisites, `sounddevice`/`pyaudio`).
+- [ ] **Implement Audio Input:**
+  - [ ] Write code to capture audio from the default microphone using `sounddevice` or `pyaudio`.
+  - [ ] Ensure audio is captured in the format required by the Whisper library (16kHz, mono, 16-bit PCM).
+- [ ] **Integrate Whisper Streaming:**
+  - [ ] Initialize the `ufal/whisper_streaming` processor with the chosen model and GPU settings.
+  - [ ] Feed captured audio chunks to the processor.
+- [ ] **Process and Display Transcription:**
+  - [ ] Retrieve transcription segments from the Whisper processor.
+  - [ ] Print the transcribed text to the console in real-time (or near real-time).
+- [ ] **Evaluate Performance:**
+  - [ ] Test the system by speaking into the microphone.
+  - [ ] Assess the perceived latency between speaking and seeing the transcription.
+  - [ ] Evaluate the accuracy of the transcription.
+  - [ ] *Optional: Add basic timing metrics to measure processing delay.* 

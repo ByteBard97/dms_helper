@@ -1,0 +1,47 @@
+# Cursor Coding Rules for D&D Helper
+
+## General Principles
+
+*   **Clarity & Simplicity:** Write code that is easy to understand and maintain.
+*   **Modularity:** Design components (audio, transcription, LLM, GUI) to be as independent as possible.
+*   **Iterative Development:** Build and test features incrementally. Focus on getting one part working well before moving to the next.
+
+## Python Specific Rules
+
+*   **Version:** Use Python 3.10 or newer.
+*   **File Length:** Keep individual Python files under 300 lines of code (excluding comments and blank lines). Break down larger logic into smaller, focused modules.
+*   **Type Hinting:** Use type hints for all function signatures and variables where appropriate (`typing` module).
+*   **Docstrings:** Write clear docstrings for all modules, classes, and functions explaining their purpose, arguments, and return values (using a standard format like Google or NumPy style).
+*   **Comments:** Only comment on non-trivial logic (the *why*, not the *what*). Avoid obvious comments.
+*   **Formatting:** Adhere to PEP 8 style guidelines. Consider using an auto-formatter like Black.
+*   **Linting:** Use a linter (like Ruff or Flake8) to catch potential errors and style issues.
+*   **Import Order:** Follow standard import order:
+    1.  Standard library imports (e.g., `os`, `sys`)
+    2.  Third-party library imports (e.g., `sounddevice`, `google.generativeai`)
+    3.  Local application/library imports.
+*   **Naming:** Use `snake_case` for functions, methods, variables, and modules. Use `PascalCase` for classes.
+
+## Error Handling
+
+*   **NO `try...except` BLOCKS:** Do not use `try...except` blocks for general error catching. Let exceptions propagate naturally during development to identify root causes quickly.
+    *   We will revisit this rule if specific, recoverable errors (e.g., network timeouts, specific device errors) prove too disruptive. For now, allow crashes.
+
+## Dependencies & Libraries
+
+*   **Check Existing Libraries:** Before writing new functionality, search for well-maintained third-party libraries that can accomplish the task.
+*   **Check Workspace:** Before creating a new function or class, check if similar functionality already exists within the project codebase.
+*   **Dependency Management:** Add all third-party dependencies to a `requirements.txt` file (or Conda `environment.yml` if preferred) with specific versions or minimum versions.
+
+## Development Process
+
+*   **Sanity Checks:** Before adding significant new features, ensure the current functionality is working correctly (as outlined in the `checklist.md`).
+*   **Testing:** (Future Phase) Plan for unit and integration tests for core components. 
+
+## Version Control (Git)
+
+*   **Initialization:** The user will initialize the Git repository.
+*   **Committing:** Code changes should only be committed when:
+    1.  Explicitly instructed by the user, OR
+    2.  After all relevant tests have been run and have passed successfully.
+*   **Testing Before Commit:** Do not commit changes without first running the relevant tests, unless explicitly overridden by the user.
+*   **Commit Messages:** Write clear and concise commit messages explaining the purpose of the changes. 

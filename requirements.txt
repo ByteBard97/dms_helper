@@ -1,0 +1,23 @@
+# Core Libraries for D&D Helper
+
+# Real-time Transcription
+# Note: whisper_streaming itself doesn't seem to be on PyPI, 
+# needs pip install git+https://github.com/ufal/whisper_streaming
+# It depends on a backend (faster-whisper recommended) and torch/torchaudio for VAD
+faster-whisper>=0.10.0 # Requires CUDA Toolkit & cuDNN separately
+torch>=2.0.0 # Check compatibility with your CUDA version
+torchaudio>=2.0.0 # Check compatibility with your CUDA version
+
+# Audio Input (Choose one or install both initially)
+sounddevice>=0.4.6
+# pyaudio # Uncomment if preferred/needed
+
+# LLM Integration (for later phases)
+google-generativeai>=0.4.0
+
+# Other utilities
+librosa>=0.10.0 # For audio processing if needed by whisper_streaming examples
+soundfile>=0.12.0 # For audio file handling if needed
+
+# GUI (Add later once chosen, e.g., PyQt6)
+# PyQt6 
