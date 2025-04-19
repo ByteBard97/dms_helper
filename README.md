@@ -15,6 +15,7 @@ This application listens to the DM's voice during a game session, transcribes it
 *   Large Language Models (initially Google Gemini API)
 *   Real-time Audio Processing (`sounddevice`)
 *   GUI (TBD - likely PyQt or Dear PyGui)
+*   License: MIT (see `LICENSE` file)
 
 ## Features (Planned)
 
