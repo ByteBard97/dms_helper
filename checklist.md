@@ -1,22 +1,33 @@
-# Phase 1 Checklist: Real-time Transcription
+# Phase 2 Checklist: LLM Context Preparation
 
-- [x] **Research Whisper Implementation:**
-  - [x] Identify suitable Python libraries for real-time streaming transcription with GPU support (`WhisperLive` client/server chosen).
-  - [x] Determine appropriate Whisper model size (`small.en` selected).
-- [x] **Setup Environment:**
-  - [x] Create Python virtual environment (`.venv`).
-  - [x] Install necessary base libraries (See `requirements.txt` - NOTE: Needs `numpy`, `av`, `websocket-client` added).
-- [x] **Implement Audio Input:**
-  - [x] Write code to capture audio from the default microphone (Handled by vendored `WhisperLive` client using `pyaudio`).
-  - [x] Ensure audio is captured in the format required by the Whisper server (Handled by client).
-- [x] **Integrate Whisper Streaming:**
-  - [x] Initialize the `TranscriptionClient` to connect to the `WhisperLive` server.
-  - [x] Feed captured audio chunks to the server (Handled by `client()` call).
-- [x] **Process and Display Transcription:**
-  - [x] Retrieve transcription segments from the `WhisperLive` server.
-  - [x] Print the transcribed text to the console in real-time (via client's `utils.print_transcript`).
-- [ ] **Evaluate Performance:**
-  - [x] Test the system by speaking into the microphone (User confirmed working).
-  - [x] Assess the perceived latency between speaking and seeing the transcription (User confirmed good).
-  - [ ] Evaluate the accuracy of the transcription (User evaluation needed).
-  - [ ] *Optional: Add basic timing metrics to measure processing delay.* 
+**Goal:** Prepare and structure background context for the LLM to act as a knowledgeable DM assistant.
+
+- [ ] **Setup Context Directory Structure:**
+  - [ ] Create base `context/` directory.
+  - [ ] Create subdirectories: `context/adventures/`, `context/pcs/`, `context/rules/` (optional), `context/misc/` (optional).
+- [ ] **PDF Adventure Conversion (using Marker):**
+  - [ ] Add `marker-pdf` to `requirements.txt`.
+  - [ ] Install `marker-pdf` and its dependencies (including PyTorch if not already sufficient).
+  - [ ] Create script `src/convert_adventure_pdf.py`.
+  - [ ] Implement logic in script to take input PDF path(s) and output Markdown to `context/adventures/`.
+  - [ ] Process core adventure PDF(s).
+- [ ] **Prepare Player Character (PC) Context:**
+  - [ ] Define format for PC context files (e.g., `context/pcs/pc_name.md`).
+  - [ ] Create/populate context files for each PC (Name, Race, Class, Backstory Summary, Key Relationships, Important Items, Goals/Motivations).
+  - *Note: User will provide this information (e.g., from Google Docs).* 
+- [ ] **Prepare Current Adventure State Context:**
+  - [ ] Define format for `context/current_state.md`.
+  - [ ] Create/populate the file with current location, recent events, active quests, key NPCs, immediate threats/goals.
+  - *Note: User will provide this information. Needs manual updates during campaign.* 
+- [ ] **Prepare Additional Context (Optional):**
+  - [ ] Convert/add core rulebook sections (e.g., specific mechanics, spell lists) to `context/rules/` if needed.
+  - [ ] Convert/add other relevant documents (world lore, house rules) to `context/misc/`.
+  - *Note: User will provide source files (e.g., Google Docs).* 
+
+# Phase 3 Checklist: Integration & Interaction (Outline)
+
+- [ ] Integrate transcription output with LLM input.
+- [ ] Develop prompt strategies for DM assistance (summarization, NPC roleplaying, rule lookups).
+- [ ] Implement mechanism to load/use context files in LLM prompts.
+- [ ] Potentially swap live mic input for file playback for testing/dev.
+- [ ] *Future: GUI?* 
