@@ -26,7 +26,24 @@ LLM_MODEL_NAME = 'gemini-1.5-flash' # Or the preview model we tested
 TRANSCRIPTION_SERVER_HOST = "localhost"
 TRANSCRIPTION_SERVER_PORT = 9090
 # Add constants for transcript accumulation strategy?
+PROMPT_TEMPLATE_FILE = Path(__file__).parent.parent / "prompts/dm_assistant_prompt.md" # Path relative to this script
 
+def load_prompt_template(file_path: Path) -> Optional[str]:
+    """Loads the prompt template from a file."""
+    if not file_path.is_file():
+        logging.error(f"Prompt template file not found: {file_path}")
+        return None
+    try:
+        # We are reading the whole file, no need for try/except for file read errors based on rules
+        prompt_template = file_path.read_text(encoding="utf-8")
+        logging.info(f"Prompt template loaded from {file_path}")
+        return prompt_template
+    # Base Exception is too broad, but needed if file_path.read_text raises non-IO errors
+    # Revisit if specific exceptions from read_text can be identified.
+    # Per rules, avoiding specific Exception types like IOError.
+    except Exception as e: 
+        logging.error(f"Failed to read prompt template file {file_path}: {e}")
+        return None
 
 def initialize_llm(api_key: str) -> Optional[genai.GenerativeModel]:
     """Configures the Gemini API and initializes the generative model."""
@@ -64,6 +81,13 @@ def run_assistant(campaign_config_path: str):
     """Main loop for the DMS Assistant."""
     logging.info(f"Starting DMS Assistant with campaign config: {campaign_config_path}")
 
+    # 0. Load Prompt Template
+    logging.info("Loading prompt template...")
+    prompt_template = load_prompt_template(PROMPT_TEMPLATE_FILE)
+    if not prompt_template:
+        logging.error("Failed to load prompt template. Exiting.")
+        return
+
     # 1. Load Context
     logging.info("Loading context...")
     initial_context = load_and_combine_context(campaign_config_path)
@@ -84,8 +108,15 @@ def run_assistant(campaign_config_path: str):
     # 3. Start LLM Chat Session with Context
     logging.info("Starting LLM chat session with context...")
     # Pass initial context. How does Gemini handle large initial context?
-    # Research: system_instruction vs history for initial prompt dump?
-    chat_session = llm_model.start_chat(history=[{'role':'user', 'parts': [initial_context]}]) # Simplistic history approach for now
+    # Using history for initial context dump as per Gemini examples.
+    # Ensure the initial context is formatted correctly for the history.
+    # The context loader should ideally return it in a format suitable for this,
+    # but for now, assume it's a single string block.
+    initial_history = [
+        {'role': 'user', 'parts': [initial_context]},
+        {'role': 'model', 'parts': ["Okay, I have loaded the context. I am ready to assist based on the DM's narration."]} # Prime the model
+    ]
+    chat_session = llm_model.start_chat(history=initial_history)
     logging.info("LLM chat session started.")
 
     # 4. Initialize Transcription Client
@@ -102,7 +133,9 @@ def run_assistant(campaign_config_path: str):
     # - How to receive transcript segments from transcription_client?
     #   (Callback? Generator? Blocking call?)
     # - Implement transcript accumulation logic (buffer, sentence/pause detection).
+    #   Target: 3-10 sentences OR significant pause.
     # - Implement prompt formatting (combining instruction + transcript chunk).
+    #   Use the loaded `prompt_template` and format it with the chunk.
     # - Send prompt to chat_session.send_message().
     # - Display the LLM response (chat_session.last.text).
     # - Handle graceful shutdown (Ctrl+C).
@@ -114,7 +147,9 @@ def run_assistant(campaign_config_path: str):
             # Simulate work / receiving transcript (replace later)
             time.sleep(10)
             # Simulate asking LLM a question (replace later)
-            # response = chat_session.send_message("Summarize the last 10 seconds of transcript (placeholder).")
+            # accumulated_chunk = "This is a sample accumulated transcript chunk." # Replace with real data
+            # formatted_prompt = prompt_template.format(accumulated_transcript_chunk=accumulated_chunk)
+            # response = chat_session.send_message(formatted_prompt)
             # logging.info(f"LLM Response (placeholder): {response.text}")
 
     except KeyboardInterrupt:
