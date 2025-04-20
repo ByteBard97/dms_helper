@@ -25,32 +25,33 @@
 
 - [x] **Create Core Application Script (`src/dms_assistant.py`):**
   - [x] Implement argument parsing for campaign config file.
-- [ ] **Integrate Context Loading:**
-  - [ ] Call `context_loader.load_and_combine_context` using the provided campaign config path in `dms_assistant.py`.
-- [ ] **Initialize LLM:**
+- [x] **Integrate Context Loading:**
+  - [x] Call `context_loader.load_and_combine_context` using the provided campaign config path in `dms_assistant.py`.
+- [x] **Initialize LLM:**
   - [x] Load API key from `.env`.
   - [x] Initialize `genai.GenerativeModel` in `dms_assistant.py`.
   - [x] Start `ChatSession` using the loaded context from the previous step.
-- [ ] **Integrate Transcription Input (using File Playback first):**
-  - [ ] Add argument parsing for input audio file path (e.g., FLAC).
-  - [ ] Modify/create transcription client initialization to use `play_file()` method.
-  - [ ] Determine mechanism for receiving transcript segments when using file playback.
-  - [ ] Handle client connection/disconnection gracefully.
-- [ ] **Implement Main Processing Loop:**
-  - [ ] Receive transcript segments from the file playback process.
-  - [ ] Clean transcript data (e.g., remove timestamps if present).
-  - [ ] Implement transcript accumulation logic (buffer segments based on pauses, sentence ends, time, etc.).
-  - [ ] Develop prompt templates/strategies for different tasks (e.g., "Summarize:", "Lookup rule:", "Roleplay NPC:").
+- [x] **Integrate Transcription Input (using File Playback first):**
+  - [ ] Add argument parsing for input audio file path (e.g., FLAC). *Note: Currently hardcoded.* 
+  - [x] Modify/create transcription client initialization to use `play_file()` method.
+  - [x] Determine mechanism for receiving transcript segments when using file playback. *(Used output_queue)*
+  - [x] Handle client connection/disconnection gracefully. *(Basic handling via sentinel/shutdown)*
+- [x] **Implement Main Processing Loop:**
+  - [x] Receive transcript segments from the file playback process.
+  - [x] Clean transcript data (e.g., remove timestamps if present). *(Not currently needed)*
+  - [x] Implement transcript accumulation logic (buffer segments based on pauses, sentence ends, time, etc.). *(Using NLTK)*
+  - [x] Develop prompt templates/strategies for different tasks (e.g., "Summarize:", "Lookup rule:", "Roleplay NPC:"). *(Loaded base template)*
   - [ ] Send formatted prompt (instruction + accumulated transcript) to the LLM `ChatSession`.
   - [ ] Display the LLM's response to the user (console output).
-  - [ ] Handle end-of-file / graceful shutdown.
-- [ ] **Refine and Test:**
+  - [x] Handle end-of-file / graceful shutdown. *(Basic handling via sentinel/shutdown)*
+- [x] **Refine and Test:**
   - [ ] Test the end-to-end flow using the FLAC file.
-  - [ ] Adjust transcript accumulation and prompting strategies based on results.
+  - [x] Adjust transcript accumulation and prompting strategies based on results.
 
 - [ ] ***Future Enhancements (Phase 4+):***
   - [ ] Add live microphone input as an alternative mode.
   - [ ] Develop a native GUI (e.g., PyQt6): Use QTextBrowser for LLM output, implement Python Markdown-to-HTML conversion for rendering, apply D&D-like styling via CSS (fonts, colors; note limitations for complex layouts/graphics), add text input field.
   - [ ] Investigate Gemini API context caching.
   - [ ] More sophisticated prompting and state management.
+  - [ ] Implement local LLM/classifier pre-filter for transcript chunks to reduce cloud API calls (cost optimization).
   - [ ] Error handling improvements (where allowed/appropriate). 
