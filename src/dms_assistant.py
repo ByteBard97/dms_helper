@@ -142,12 +142,11 @@ def initialize_transcription_client(output_queue: Optional[queue.Queue] = None, 
 
     # Common arguments for the underlying Client
     client_args = {
-        "lang": "en",
+        "lang": None, # Use None for multilingual large-v3 model
         "translate": False,
-        "model": "small.en", # TODO: Make configurable?
+        "model": "large-v3", # Changed to largest model
         "use_vad": True,
         "output_queue": output_queue,
-        # Add other Client __init__ args if needed (log_transcription, srt_file_path etc.)
         "log_transcription": False # Disable internal console logging
     }
     # Arguments specific to TranscriptionClient wrapper (not passed to Client directly)
@@ -185,7 +184,7 @@ def run_assistant():
 
     # --- Use Hardcoded Paths --- (Instead of parameters)
     campaign_config_path = str(Path("source_materials/ceres_group/ceres_odyssey.json").resolve())
-    input_audio_file = str(Path("source_materials/recording_of_dm.flac").resolve())
+    input_audio_file = str(Path("source_materials/recording_of_dm_resampled.wav").resolve())
 
     logging.info(f"Starting DMS Assistant Run: {run_timestamp}")
     # Log the hardcoded paths being used
@@ -380,7 +379,7 @@ if __name__ == "__main__":
 
     # --- Basic File Checks (Optional but good practice) ---
     campaign_path_obj = Path("source_materials/ceres_group/ceres_odyssey.json")
-    audio_path_obj = Path("source_materials/recording_of_dm.flac")
+    audio_path_obj = Path("source_materials/recording_of_dm_resampled.wav")
 
     if not campaign_path_obj.is_file():
         logging.error(f"Error: Hardcoded campaign configuration file not found at {campaign_path_obj}")
