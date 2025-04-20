@@ -31,25 +31,26 @@
   - [x] Load API key from `.env`.
   - [x] Initialize `genai.GenerativeModel` in `dms_assistant.py`.
   - [x] Start `ChatSession` using the loaded context from the previous step.
-- [ ] **Integrate Transcription Client:**
-  - [ ] Instantiate `TranscriptionClient` in `dms_assistant.py`.
-  - [ ] Determine mechanism for receiving transcript segments from client (callback, generator, queue?).
-  - [ ] Handle transcription client connection/disconnection gracefully (investigate client's error handling).
+- [ ] **Integrate Transcription Input (using File Playback first):**
+  - [ ] Add argument parsing for input audio file path (e.g., FLAC).
+  - [ ] Modify/create transcription client initialization to use `play_file()` method.
+  - [ ] Determine mechanism for receiving transcript segments when using file playback.
+  - [ ] Handle client connection/disconnection gracefully.
 - [ ] **Implement Main Processing Loop:**
-  - [ ] Receive transcript segments from the client.
+  - [ ] Receive transcript segments from the file playback process.
   - [ ] Clean transcript data (e.g., remove timestamps if present).
   - [ ] Implement transcript accumulation logic (buffer segments based on pauses, sentence ends, time, etc.).
   - [ ] Develop prompt templates/strategies for different tasks (e.g., "Summarize:", "Lookup rule:", "Roleplay NPC:").
   - [ ] Send formatted prompt (instruction + accumulated transcript) to the LLM `ChatSession`.
   - [ ] Display the LLM's response to the user (console output).
-  - [ ] Handle graceful shutdown (Ctrl+C).
+  - [ ] Handle end-of-file / graceful shutdown.
 - [ ] **Refine and Test:**
-  - [ ] Test the end-to-end flow with sample audio/transcription.
+  - [ ] Test the end-to-end flow using the FLAC file.
   - [ ] Adjust transcript accumulation and prompting strategies based on results.
 
 - [ ] ***Future Enhancements (Phase 4+):***
-  - [ ] Implement file playback input option (using FLAC files).
-  - [ ] Develop a GUI (consider real-time Markdown rendering, text input field).
+  - [ ] Add live microphone input as an alternative mode.
+  - [ ] Develop a native GUI (e.g., PyQt6): Use QTextBrowser for LLM output, implement Python Markdown-to-HTML conversion for rendering, apply D&D-like styling via CSS (fonts, colors; note limitations for complex layouts/graphics), add text input field.
   - [ ] Investigate Gemini API context caching.
   - [ ] More sophisticated prompting and state management.
   - [ ] Error handling improvements (where allowed/appropriate). 
