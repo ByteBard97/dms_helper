@@ -34,6 +34,7 @@ class Client:
         log_transcription=True,
         max_clients=4,
         max_connection_time=600,
+        output_queue=None,
     ):
         """
         Initializes a Client instance for audio recording and streaming to a server.
@@ -53,6 +54,7 @@ class Client:
             log_transcription (bool, optional): Whether to log transcription output to the console. Default is True.
             max_clients (int, optional): Maximum number of client connections allowed. Default is 4.
             max_connection_time (int, optional): Maximum allowed connection time in seconds. Default is 600.
+            output_queue (queue.Queue, optional): Queue to put received transcript segments onto. Default is None.
         """
         self.recording = False
         self.task = "transcribe"
@@ -70,6 +72,7 @@ class Client:
         self.log_transcription = log_transcription
         self.max_clients = max_clients
         self.max_connection_time = max_connection_time
+        self.output_queue = output_queue
 
         if translate:
             self.task = "translate"
@@ -130,11 +133,19 @@ class Client:
             self.last_response_received = time.time()
             self.last_received_segment = segments[-1]["text"]
 
-        if self.log_transcription:
-            # Truncate to last 3 entries for brevity.
-            text = text[-3:]
-            utils.clear_screen()
-            utils.print_transcript(text)
+        # Put the latest segment list onto the output queue if it exists
+        if self.output_queue and segments:
+            # Send the full segment list for potential context/reconstruction
+            # The receiver (accumulator) will need to handle this list
+            # and figure out which parts are new/completed.
+            self.output_queue.put(segments) # Put the list of dicts
+
+        # Original logging is now disabled if queue is used, handled externally
+        # if self.log_transcription:
+        #     # Truncate to last 3 entries for brevity.
+        #     text = text[-3:]
+        #     utils.clear_screen()
+        #     utils.print_transcript(text)
 
     def on_message(self, ws, message):
         """
@@ -252,6 +263,12 @@ class Client:
         """ Returns the WebSocket client instance. """
         return self.client_socket
 
+    def _put_sentinel_on_queue(self):
+        """Puts the sentinel value (None) on the output queue if it exists."""
+        if self.output_queue:
+            logging.debug(f"Client {self.uid}: Putting sentinel on output queue.")
+            self.output_queue.put(None)
+
     def write_srt_file(self, output_path="output.srt"):
         """
         Writes out the transcript in SRT format.
@@ -271,7 +288,6 @@ class Client:
 
         utils.create_srt_file(self.transcript, output_path)
         print(f"[INFO]: Transcript saved to {output_path}")
-
 
     def wait_before_disconnect(self):
         """
@@ -438,6 +454,11 @@ class TranscriptionTeeClient:
                 self.close_all_clients()
                 self.write_all_clients_srt()
                 print("[INFO]: Keyboard interrupt.")
+            finally:
+                # Ensure sentinel is placed even if loop exits unexpectedly (except KeyboardInterrupt)
+                logging.debug("play_file finished loop or encountered issue, putting sentinel.")
+                for client in self.clients:
+                    client._put_sentinel_on_queue()
 
     def process_rtsp_stream(self, rtsp_url):
         """
@@ -691,6 +712,7 @@ class TranscriptionClient(TranscriptionTeeClient):
         max_clients (int, optional): Maximum number of client connections allowed. Default is 4.
         max_connection_time (int, optional): Maximum allowed connection time in seconds. Default is 600.
         mute_audio_playback (bool, optional): If True, mutes audio playback during file playback. Default is False.
+        output_queue (queue.Queue, optional): Queue to put received transcript segments onto. Default is None.
 
     Attributes:
         client (Client): An instance of the underlying Client class responsible for handling the WebSocket connection.
@@ -717,11 +739,13 @@ class TranscriptionClient(TranscriptionTeeClient):
         max_clients=4,
         max_connection_time=600,
         mute_audio_playback=False,
+        output_queue=None,
     ):
         self.client = Client(
             host, port, lang, translate, model, srt_file_path=output_transcription_path,
             use_vad=use_vad, log_transcription=log_transcription, max_clients=max_clients,
-            max_connection_time=max_connection_time
+            max_connection_time=max_connection_time,
+            output_queue=output_queue
         )
 
         if save_output_recording and not output_recording_filename.endswith(".wav"):
@@ -735,5 +759,7 @@ class TranscriptionClient(TranscriptionTeeClient):
             output_recording_filename=output_recording_filename,
             mute_audio_playback=mute_audio_playback
         )
+
+        logging.info("Transcription client initialized for file playback.")
 
 
