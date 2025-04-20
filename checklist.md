@@ -54,4 +54,15 @@
   - [ ] Investigate Gemini API context caching.
   - [ ] More sophisticated prompting and state management.
   - [ ] Implement local LLM/classifier pre-filter for transcript chunks to reduce cloud API calls (cost optimization).
+  - [ ] Implement forced chunk flushing via keyword/button (manual "send now").
+  - [ ] Add selective transcription controls for live mode (Push-to-talk, Wake Word).
+  - [ ] Allow manual text input for direct LLM queries/commands.
+  - [ ] Enhance console output rendering (e.g., better Markdown display).
+  - [ ] Implement suggestion management features (copy, save, rate).
+  - [ ] Explore dynamic prompting based on transcript content/intent.
+  - [ ] Improve handling of `ASSISTANT_NEEDS_MORE_CONTEXT` responses.
+  - [ ] Allow follow-up questions based on LLM responses.
+  - [ ] Add commands for in-session context updates.
+  - [ ] Investigate speaker diarization.
+  - [ ] Explore transcription improvements (custom vocab, fine-tuning).
   - [ ] Error handling improvements (where allowed/appropriate). 
