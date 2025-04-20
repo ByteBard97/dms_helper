@@ -1,33 +1,30 @@
 # Phase 2 Checklist: LLM Context Preparation
 
-**Goal:** Prepare and structure background context for the LLM to act as a knowledgeable DM assistant.
+**Goal:** Prepare and gather background context files for the LLM.
 
-- [ ] **Setup Context Directory Structure:**
-  - [ ] Create base `context/` directory.
-  - [ ] Create subdirectories: `context/adventures/`, `context/pcs/`, `context/rules/` (optional), `context/misc/` (optional).
-- [ ] **PDF Adventure Conversion (using Marker):**
-  - [ ] Add `marker-pdf` to `requirements.txt`.
-  - [ ] Install `marker-pdf` and its dependencies (including PyTorch if not already sufficient).
-  - [ ] Create script `src/convert_adventure_pdf.py`.
-  - [ ] Implement logic in script to take input PDF path(s) and output Markdown to `context/adventures/`.
-  - [ ] Process core adventure PDF(s).
-- [ ] **Prepare Player Character (PC) Context:**
-  - [ ] Define format for PC context files (e.g., `context/pcs/pc_name.md`).
-  - [ ] Create/populate context files for each PC (Name, Race, Class, Backstory Summary, Key Relationships, Important Items, Goals/Motivations).
-  - *Note: User will provide this information (e.g., from Google Docs).* 
-- [ ] **Prepare Current Adventure State Context:**
-  - [ ] Define format for `context/current_state.md`.
-  - [ ] Create/populate the file with current location, recent events, active quests, key NPCs, immediate threats/goals.
-  - *Note: User will provide this information. Needs manual updates during campaign.* 
-- [ ] **Prepare Additional Context (Optional):**
-  - [ ] Convert/add core rulebook sections (e.g., specific mechanics, spell lists) to `context/rules/` if needed.
-  - [ ] Convert/add other relevant documents (world lore, house rules) to `context/misc/`.
-  - *Note: User will provide source files (e.g., Google Docs).* 
+- [x] **PDF Adventure Conversion (using Marker):**
+  - [x] Test `marker-pdf` installation.
+  - [x] Create script `src/convert_adventure_pdf.py`.
+  - [x] Implement logic to convert all PDFs in `source_materials/` to Markdown.
+  - [x] Process core adventure PDF(s).
+- [ ] **Gather Player Character (PC) Context:**
+  - [ ] Ensure PC descriptions are available in a text/Markdown file (e.g., `source_materials/PC_descriptions.txt`).
+  - *Note: User to provide/confirm this file.* 
+- [ ] **Gather Current Adventure State Context:**
+  - [ ] Create a text/Markdown file summarizing the current state (location, quests, NPCs, goals, etc.) (e.g., `source_materials/current_state.md`).
+  - *Note: User to create and maintain this file.* 
+- [ ] **Gather Additional Context (Optional):**
+  - [ ] Add any other relevant lore, rules, house rules etc. as text/Markdown files in `source_materials/`.
+  - *Note: User to provide source files (e.g., from Google Docs).* 
+
+**Approach Note:** Context will be loaded by reading all relevant `.md`/`.txt` files from `source_materials/` and combined into the initial LLM prompt/history, rather than requiring specific structured files.
 
 # Phase 3 Checklist: Integration & Interaction (Outline)
 
-- [ ] Integrate transcription output with LLM input.
-- [ ] Develop prompt strategies for DM assistance (summarization, NPC roleplaying, rule lookups).
-- [ ] Implement mechanism to load/use context files in LLM prompts.
-- [ ] Potentially swap live mic input for file playback for testing/dev.
-- [ ] *Future: GUI?* 
+- [ ] Create main interaction loop script.
+- [ ] Implement loading/combining of all context files from `source_materials/`.
+- [ ] Initialize LLM (Gemini) chat session with combined context.
+- [ ] Integrate real-time transcription (from `WhisperLive` client or file playback).
+- [ ] Develop prompt strategy: Send accumulated transcript segments + specific query/task to LLM.
+- [ ] Display LLM responses.
+- [ ] *Future: GUI, File Playback Input Option, Context Caching, More Sophisticated Prompting/Summarization.* 
