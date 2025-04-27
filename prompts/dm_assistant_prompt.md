@@ -1,6 +1,6 @@
 **DM Narration/Dialogue:**
 
-{accumulated_transcript_chunk}
+{transcript_chunk}
 
 ---
 **Assistant Task:** Based *only* on the DM's speech above and the extensive campaign context provided earlier (adventure details, locations, NPCs, etc.), enhance the scene using **Markdown formatting**. Offer helpful suggestions as **bulleted or numbered lists**, or **Markdown tables** where appropriate. Briefly introduce suggestion categories if helpful (1-2 sentences max), but keep the core suggestions concise and list-based.
