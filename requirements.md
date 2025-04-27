@@ -10,7 +10,7 @@ To create a desktop application that listens to a Dungeon Master's (DM) voice du
 *   **Real-time Transcription:** Transcribe the captured audio stream using a GPU-accelerated Whisper model with low latency (target < 5 seconds, ideally 1-2 seconds). Initially, focus only on the DM's voice.
 *   **Context Loading:** Load initial context provided by the user at startup (DM notes, adventure chapters, PC info). Assume static context for the initial version.
 *   **LLM Integration:**
-    *   Send transcribed text, along with loaded context and conversational history, to an LLM API (starting with Gemini 2.5 Pro).
+    *   Send transcribed text, along with loaded context and conversational history, to an LLM API (currently Google Gemini - `gemini-1.5-flash`).
     *   Design the LLM interaction to be modular, allowing different LLM backends to be swapped in the future.
     *   Maintain conversational context with the LLM to avoid resending static information repeatedly.
 *   **LLM Triggering:** Implement multiple methods for triggering LLM generation:
@@ -38,14 +38,14 @@ To create a desktop application that listens to a Dungeon Master's (DM) voice du
 *   **Audio Input:** `sounddevice` or `pyaudio`
 *   **Real-time Transcription:** `ufal/whisper_streaming` (using `faster-whisper` backend with GPU/CUDA)
 *   **LLM API Client:** Google Generative AI SDK for Python (`google-generativeai`)
-*   **GUI:** `PyQt6` or `PySide6` (Good Markdown support, mature) or `Dear PyGui` (Potentially simpler for real-time updates) - *Decision TBD*.
-*   **Markdown Rendering:** Built-in capabilities of the chosen GUI library or a library like `Markdown`.
+*   **GUI:** `PyQt6` (Chosen for good Markdown/HTML rendering via `QTextBrowser` and maturity).
+*   **Markdown Rendering:** `Markdown` library (to convert LLM output to HTML) + `QTextBrowser` (PyQt6).
 
 ## 5. Input / Output Formats
 
-*   **Context Input:** Plain text files (.txt) or Markdown files (.md) for DM notes, adventure chapters, and PC information. A simple file structure or naming convention will be needed (e.g., `context/notes.md`, `context/adventure/chapter1.md`, `context/pcs.md`).
+*   **Context Input:** Text (`.txt`) or Markdown (`.md`) files containing adventure details, PC info, world lore, etc. The specific files to load for a campaign are defined in a JSON configuration file (e.g., `source_materials/<campaign_name>/<campaign_name>.json`).
 *   **Transcription Output (Internal):** String data passed from the transcription module to the LLM interaction module.
-*   **LLM Output:** Markdown formatted text displayed in the GUI.
+*   **LLM Output:** Markdown formatted text, intended for display in the GUI after conversion to HTML.
 
 ## 6. Future Considerations
 

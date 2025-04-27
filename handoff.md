@@ -1,8 +1,46 @@
 # Project Handoff: D&D Helper
 
-**Overall Goal:** To create a real-time D&D assistant that listens to the DM's narration via microphone (currently simulated via file playback), processes the transcript, uses it along with pre-loaded campaign context to query a large language model (Gemini), and displays helpful suggestions or information back to the DM.
+**Overall Goal:** To create a real-time D&D assistant that listens to the DM's narration via microphone (currently simulated via file playback), processes the transcript, uses it along with pre-loaded campaign context to query a large language model (Gemini), and displays helpful suggestions or information back to the DM in a styled GUI.
 
 ---
+
+**Date:** 2025-04-27 (Updated End of Session)
+
+**Recent Activity (This Session):**
+
+1.  **Implemented Gemini API Call:**
+    *   Added code to `src/dms_assistant.py` to call `chat_session.send_message()` within the `if gatekeeper_decision == "YES":` block.
+    *   Integrated logic to handle the Gemini response, extracting the text.
+    *   Added logging for the raw response object and the extracted text.
+    *   Currently printing the response text directly to the console.
+2.  **Enhanced Logging:**
+    *   Added logic to `src/dms_assistant.py` to automatically archive `.log` files from previous runs into a `logs/archive/` subdirectory on startup.
+    *   Created a new dedicated logger (`gemini_context`) and log file (`gemini_context_<timestamp>.log`) to store the full conversation history (initial context, user prompts, model responses) sent to/from the Gemini API for debugging and analysis.
+3.  **Tested End-to-End Flow:**
+    *   Successfully ran the script (`python src/dms_assistant.py`) with the audio file.
+    *   Confirmed: Log archiving worked, transcription ran, gatekeeper filtered chunks, Gemini was called successfully for approved chunks, and the response was logged and printed.
+
+**Current Status:**
+
+*   The full pipeline (Transcription -> Accumulation -> Gatekeeper Check -> Conditional Gemini API Call -> Response Logging/Printing) is functional using file playback.
+*   The script archives old logs and creates detailed logs for raw transcript, prompts, responses, the combined session, and the specific Gemini conversation context.
+*   Gemini responses are received but currently only printed to the console as raw text (including Markdown syntax).
+
+**Next Steps (Immediate):**
+
+*   **Begin GUI Development (Phase 4):**
+    *   Choose a suitable Python GUI library (PyQt6 is a strong candidate, mentioned in `checklist.md`).
+    *   Set up the basic application window structure.
+    *   Implement the core display component: a **scrollable text area** (e.g., `QTextBrowser`) capable of rendering rich text/HTML.
+    *   Modify `src/dms_assistant.py` to:
+        *   Convert the Markdown response from Gemini into HTML (using a library like `markdown` or `mistune`).
+        *   **Append** the rendered HTML block to the GUI's scrollable text area instead of printing to the console.
+        *   *(Note: Using the widget's native `append` method is efficient. It avoids performance degradation in long sessions by only rendering the new content, unlike approaches that would require re-rendering the entire history each time.)*
+    *   Investigate applying basic D&D-themed styling (fonts, colors) to the GUI display area using CSS.
+
+---
+
+## Previous Handoff (2025-04-27 - Start of Session)
 
 **Date:** 2025-04-27
 
@@ -30,48 +68,6 @@
 *   Implement the actual call to the Gemini LLM (`chat_session.send_message()`) within the `if gatekeeper_decision == "YES":` block in `src/dms_assistant.py`.
 *   Process and display/log the response from the Gemini LLM.
 *   Continue working through the `checklist.md` Phase 3 items.
-
----
-
-## Previous Handoff (2025-04-20)
-
-**Status (as of 2025-04-20):**
-
-*   **Phase:** Actively working on **Phase 3: Integration & Interaction** (see `checklist.md`).
-*   **Recent Progress:**
-    *   Core application script (`src/dms_assistant.py`) set up.
-    *   Context loading implemented and working.
-    *   Gemini LLM initialized and chat session started with context.
-    *   Transcription input via file playback integrated.
-    *   **Transcript Accumulation (`src/transcript_accumulator.py`) significantly reworked and functional:** Uses `nltk`, chunks based on sentence and word count.
-    *   **Gatekeeper Concept Defined:** Plan to use local Ollama model (`mistral:latest`) as a filter.
-    *   **Ollama Connection Tested:** Verified with `test_ollama_connection.py`.
-*   **State:** Pipeline transcribed, accumulated, and logged chunks. **Immediate next step was integrating the Ollama gatekeeper logic.**
-
-**Project Structure & Key Files (as of 2025-04-20):**
-
-*   **`/src/`**: Main Python source code.
-    *   `dms_assistant.py`: Main application entry point.
-    *   `transcript_accumulator.py`: Buffering and chunking logic.
-    *   `context_loader.py`: Loads context files.
-    *   `convert_adventure_pdf.py`: PDF conversion utility.
-    *   `whisper_live_client/`: Client library for WhisperLive.
-*   **`/source_materials/`**: Campaign context files (`*.json`, `*.md`, `*.txt`, `*.pdf`, audio).
-*   **`/logs/`**: Detailed session logs.
-*   **`/prompts/`**: Prompt templates (`dm_assistant_prompt.md`, `gatekeeper_prompt.md`).
-*   `requirements.txt`: Python dependencies.
-*   `checklist.md`: Project phase tracking.
-*   `.env`: Stores `GOOGLE_API_KEY`.
-*   `rules.mdc`: Coding rules.
-*   `test_ollama_connection.py`: Ollama connection verification.
-
-**Next Steps (as of 2025-04-20):**
-
-1.  **Integrate Ollama Gatekeeper:** Modify `src/dms_assistant.py` (init client, load prompt, call Ollama, parse response).
-2.  **Conditional LLM Communication:** Modify `src/dms_assistant.py` to call Gemini only if gatekeeper says 'YES'.
-3.  **Display LLM Response:** Add code to print/log Gemini response.
-4.  **Test End-to-End Flow.**
-5.  **(Post-Testing) Refine Prompts/Chunking/Gatekeeper.**
 
 **Running the Project (as of 2025-04-20):**
 

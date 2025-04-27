@@ -11,56 +11,63 @@ This application listens to the DM's voice during a game session, transcribes it
 ## Core Technologies
 
 *   Python 3.10+
-*   Whisper (via `ufal/whisper_streaming` and `faster-whisper`)
-*   Large Language Models (initially Google Gemini API)
-*   Real-time Audio Processing (`sounddevice`)
-*   GUI (TBD - likely PyQt or Dear PyGui)
+*   Whisper (via WhisperLive Docker container using `faster-whisper` backend)
+*   Large Language Models (Google Gemini API - `gemini-1.5-flash` currently)
+*   Local LLM Gatekeeper (Ollama with `mistral:latest` currently)
+*   GUI (Planned: **PyQt6**)
 *   License: MIT (see `LICENSE` file)
 
 ## Features (Planned)
 
-*(Details outlined in `requirements.md`)*
+*(Details outlined in `requirements.md` and `checklist.md`)*
 
-*   Real-time GPU-accelerated transcription of DM's voice.
+*   Real-time GPU-accelerated transcription of DM's voice (via file playback currently).
 *   Context-aware LLM suggestions based on user-provided notes.
-*   Markdown rendering of LLM output in a simple GUI.
-*   Manual and automatic triggering for LLM interaction.
+*   Local LLM gatekeeper to filter transcript chunks before sending to the cloud LLM.
+*   Markdown rendering of LLM output in a simple GUI (Next Step).
+*   Manual and automatic triggering for LLM interaction (Future Phase).
 
 ## Setup
-
-*(Instructions will be added here)*
 
 1.  Clone the repository.
 2.  Create and **activate** the Python virtual environment (`.venv`):
     ```bash
     # Create the venv (using your Python 3.10+)
-    python -m venv .venv 
+    python -m venv .venv
     # Activate (Windows PowerShell)
-    .\.venv\Scripts\Activate.ps1 
+    .\.venv\Scripts\Activate.ps1
     # Or Activate (Bash/Git Bash/MacOS)
-    # source .venv/bin/activate 
+    # source .venv/bin/activate
     ```
     **Note:** Ensure the virtual environment is active in your terminal for all subsequent steps.
-3.  Install dependencies (see `requirements.txt` - requires CUDA/cuDNN):
+3.  Install dependencies (requires CUDA/cuDNN):
     ```bash
     # Make sure pip is up-to-date in the venv
     python -m pip install --upgrade pip
-    # Install vendored library (if necessary - currently whisper_streaming)
-    # pip install git+https://github.com/ufal/whisper_streaming # (Doesn't work directly)
-    # Instead, clone it into vendor/ (already done)
     # Install requirements
     pip install -r requirements.txt
     ```
-4.  Configure API keys (if necessary).
+4.  **Configure External Servers:**
+    *   Set up and run the **WhisperLive Docker container** (using GPU). See `SETUP_GUIDE.md` for details.
+    *   Set up and run an **Ollama server** (ideally on a separate machine on the LAN) with the `mistral:latest` model pulled. Configure it for LAN access. See `SETUP_GUIDE.md` for details.
+5.  **Configure API Keys:**
+    *   Create a `.env` file in the project root.
+    *   Add your Google API key: `GOOGLE_API_KEY=YOUR_API_KEY_HERE`
+6.  **(First Run Only) NLTK Data:**
+    *   The NLTK `punkt` tokenizer data will be downloaded automatically the first time the script requires it.
 
 ## Usage
 
-*(Instructions will be added here)*
-
-1.  Prepare context files (notes, adventure details, PC info).
-2.  Run the main application script.
-3.  Select audio input device.
-4.  Start the transcription/assistance process.
+1.  Ensure the WhisperLive Docker container is running.
+2.  Ensure the Ollama server is running and accessible (check `OLLAMA_HOST` in `src/dms_assistant.py` if needed).
+3.  Prepare context files in `source_materials/` and ensure they are listed in the campaign JSON file (e.g., `source_materials/ceres_group/ceres_odyssey.json`).
+4.  Activate the virtual environment (`.venv`).
+5.  Run the main application script:
+    ```bash
+    python src/dms_assistant.py
+    ```
+6.  The script currently uses hardcoded paths for the campaign config and input audio file.
+7.  Transcription will begin, and suggestions from Gemini (filtered by the gatekeeper) will be **printed to the console**. GUI display is the next major feature planned.
 
 ## Contributing
 

@@ -69,6 +69,8 @@ def setup_file_loggers(timestamp: str):
     LOG_DIRECTORY.mkdir(exist_ok=True)
 
     log_formatter = logging.Formatter('%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    # Use a simpler formatter for context log to make it easier to read the raw conversation
+    context_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
     # Logger for raw transcript
     raw_transcript_logger = logging.getLogger('raw_transcript')
@@ -78,7 +80,7 @@ def setup_file_loggers(timestamp: str):
     raw_transcript_logger.addHandler(raw_handler)
     raw_transcript_logger.propagate = False # Don't send to root logger/console
 
-    # Logger for prompts sent
+    # Logger for prompts sent (General prompts, keep this for gatekeeper etc.)
     prompts_logger = logging.getLogger('prompts_sent')
     prompts_logger.setLevel(logging.DEBUG)
     prompts_handler = logging.FileHandler(LOG_DIRECTORY / f"prompts_sent_{timestamp}.log", encoding='utf-8')
@@ -86,7 +88,7 @@ def setup_file_loggers(timestamp: str):
     prompts_logger.addHandler(prompts_handler)
     prompts_logger.propagate = False
 
-    # Logger for responses received
+    # Logger for responses received (General responses)
     responses_logger = logging.getLogger('responses_received')
     responses_logger.setLevel(logging.DEBUG)
     responses_handler = logging.FileHandler(LOG_DIRECTORY / f"responses_received_{timestamp}.log", encoding='utf-8')
@@ -100,12 +102,21 @@ def setup_file_loggers(timestamp: str):
     combined_handler = logging.FileHandler(LOG_DIRECTORY / f"combined_session_{timestamp}.log", encoding='utf-8')
     # Slightly different format for combined log to show source
     combined_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    combined_handler.setFormatter(combined_formatter)
+    combined_handler.setFormatter(combined_formatter) # Using combined_formatter, not context_formatter
     combined_logger.addHandler(combined_handler)
     combined_logger.propagate = False # Keep separate from console
 
+    # --- New Logger for Gemini Context ---
+    gemini_context_logger = logging.getLogger('gemini_context')
+    gemini_context_logger.setLevel(logging.INFO) # Log INFO level and above (USER/MODEL messages)
+    context_handler = logging.FileHandler(LOG_DIRECTORY / f"gemini_context_{timestamp}.log", encoding='utf-8')
+    context_handler.setFormatter(context_formatter) # Use the specific context formatter
+    gemini_context_logger.addHandler(context_handler)
+    gemini_context_logger.propagate = False # Keep separate
+    # --- End of New Logger ---
+
     logging.info(f"Detailed logs will be saved in: {LOG_DIRECTORY}")
-    return raw_transcript_logger, prompts_logger, responses_logger, combined_logger
+    return raw_transcript_logger, prompts_logger, responses_logger, combined_logger, gemini_context_logger
 
 def load_prompt_template(file_path: Path) -> Optional[str]:
     """Loads the prompt template from a file."""
@@ -219,7 +230,7 @@ def run_assistant():
         logging.info(f"Archived {archived_count} previous log file(s) to {archive_dir}")
     # --- End of Archive Logic --- (Added)
 
-    raw_transcript_logger, prompts_logger, responses_logger, combined_logger = setup_file_loggers(run_timestamp)
+    raw_transcript_logger, prompts_logger, responses_logger, combined_logger, gemini_context_logger = setup_file_loggers(run_timestamp)
 
     # Register signal handler for graceful shutdown
     signal.signal(signal.SIGINT, sigint_handler)
@@ -284,6 +295,15 @@ def run_assistant():
     chat_session = llm_model.start_chat(history=initial_history)
     logging.info("LLM chat session started.")
     combined_logger.info("LLM_SESSION_STARTED")
+
+    # --- Log Initial Gemini Context ---
+    gemini_context_logger.info("--- INITIAL CONTEXT ---")
+    for item in initial_history:
+        role = item.get('role', 'unknown').upper()
+        parts_text = "\n".join(item.get('parts', []))
+        gemini_context_logger.info(f"{role}:\n{parts_text}")
+    gemini_context_logger.info("-----------------------")
+    # --- End Initial Context Logging ---
 
     # 5. Initialize Transcription Client & Queue
     logging.info("Initializing transcription client...")
@@ -378,6 +398,9 @@ def run_assistant():
 
                         # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                         # === SEND TO GEMINI LLM ===
+                        # Log the user prompt to the context logger
+                        gemini_context_logger.info(f"USER:\n{main_prompt_formatted}")
+
                         # Send the formatted prompt to the Gemini chat session
                         # No try/except block per project rules. Let errors propagate.
                         gemini_response = chat_session.send_message(main_prompt_formatted)
@@ -389,6 +412,8 @@ def run_assistant():
                             logging.info(f"Gemini Response Text: {response_text}")
                             responses_logger.info(f"GEMINI_RESPONSE: {response_text}")
                             combined_logger.info(f"GEMINI_RESPONSE_RECEIVED: {response_text}")
+                            # Log the model response to the context logger
+                            gemini_context_logger.info(f"MODEL:\n{response_text}")
 
                             # Display response to user (console for now)
                             print("\n--- Assistant Suggestion ---")
@@ -399,6 +424,8 @@ def run_assistant():
                             # (e.g., blocked prompt, other API errors structured differently)
                             logging.warning(f"Gemini response did not contain expected text attribute. Response: {gemini_response}")
                             combined_logger.warning(f"GEMINI_RESPONSE_UNEXPECTED_FORMAT: {gemini_response}")
+                            # Log the failure/unexpected format to context log too
+                            gemini_context_logger.warning(f"MODEL (Unexpected Response):\n{gemini_response}")
                             print("\n--- Assistant: Received unexpected response format from LLM ---\n")
 
                         # logging.warning("*** Gemini API call is currently skipped/not implemented! ***") # Placeholder REMOVED
