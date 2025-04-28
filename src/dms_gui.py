@@ -14,13 +14,9 @@ from markdown_utils import markdown_to_html_fragment, DND_CSS
 from main_window import MainWindow # Keep this import
 
 def main():
-    # Try enabling software OpenGL before creating the QApplication
-    # This might help with graphics driver compatibility issues
-    try:
-        QApplication.setAttribute(Qt.AA_UseSoftwareOpenGL, True)
-        print("Attempting to use software OpenGL.")
-    except Exception as e:
-        print(f"Could not set AA_UseSoftwareOpenGL: {e}")
+    # Try enabling software OpenGL - REMOVED TRY/EXCEPT
+    QApplication.setAttribute(Qt.AA_UseSoftwareOpenGL, True)
+    print("Attempting to use software OpenGL.")
 
     app = QApplication(sys.argv)
     

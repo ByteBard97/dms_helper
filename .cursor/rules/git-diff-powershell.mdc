@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+    *   **Reliable Git Diff in PowerShell:** Before committing, if you need to review the diff in a PowerShell environment where piping fails:
+        ```markdown
+        ---
+        description: Ensure reliable `git diff` output in PowerShell environments.
+        globs: N/A
+        alwaysApply: true
+        ---
+
+        - **Problem:** Directly piping `git diff` output in PowerShell (e.g., `git diff | cat`) can fail due to PowerShell's object handling and parameter binding errors with `Get-Content` (aliased as `cat`). Attempts like `git --no-pager diff | cat` may also fail.
+        - **Solution:** Use a temporary file to capture the output reliably.
+          - **Recommended Command:**
+            ```powershell
+            git diff | Out-File -FilePath temp_diff.txt -Encoding utf8; Get-Content temp_diff.txt; Remove-Item temp_diff.txt
+            ```
+          - **Explanation:** This command redirects the raw `git diff` output to `temp_diff.txt` (ensuring UTF-8 encoding), then reads the file content back using `Get-Content`, and finally cleans up the temporary file. This avoids the pitfalls of direct PowerShell piping for this command.
+
+        ```

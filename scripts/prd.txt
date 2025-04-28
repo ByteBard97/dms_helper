@@ -1,0 +1,88 @@
+# D&D Helper - Product Requirements Document (PRD)
+
+## 1. Overview (Project Goal)
+
+To create a desktop application that listens to a Dungeon Master's (DM) voice during a Dungeons & Dragons game, transcribes it in near real-time using Whisper, and feeds the transcription to a Large Language Model (LLM). The LLM will use provided context (DM notes, adventure details, player character information) to generate helpful suggestions, descriptions, NPC dialogue/actions, treasure ideas, and other "dungeon dressing" details to assist the DM during the live game session.
+
+## 2. Core Features
+
+*   **Real-time Audio Input:** Capture audio from a selected microphone input device. *(Note: Currently implemented via file playback for testing).*
+*   **Real-time Transcription:** Transcribe the captured audio stream using a GPU-accelerated Whisper model (specifically `ufal/whisper_streaming` with `faster-whisper` backend on CUDA) with low latency (target < 5 seconds). Initially focuses only on the DM's voice. *(Implemented using whisper_live_client)*.
+*   **Context Loading:** Load initial static context (DM notes, adventure chapters, PC info, world lore) provided by the user at startup via text/Markdown files specified in a campaign-specific JSON configuration file (e.g., `source_materials/<campaign_name>/<campaign_name>.json`). *(Implemented in `context_loader.py`)*.
+*   **LLM Integration (Gemini):**
+    *   Send accumulated transcript chunks, along with loaded context and conversational history, to the Google Gemini API (`gemini-1.5-flash`). *(Implemented)*.
+    *   Maintain conversational context using `ChatSession`. *(Implemented)*.
+    *   Designed to be modular for potential future LLM backend swapping.
+*   **LLM Gatekeeper (Ollama):** Use a local LLM (Ollama with `mistral:latest`) as a gatekeeper to classify the relevance of transcript chunks before sending them to the main cloud LLM API (Gemini), reducing unnecessary API calls. *(Implemented)*.
+*   **LLM Triggering:** Implement multiple methods for triggering LLM generation (Manual, VAD pause, Time-based, Keyword). *(Requires experimentation; currently triggers conditionally based on Ollama gatekeeper)*.
+*   **Output Display (GUI):** Display LLM-generated suggestions in a simple PyQt6 GUI featuring a scrollable text area (`QTextBrowser`). Render the LLM output as Markdown converted to HTML. *(Next immediate development step)*.
+*   **Manual LLM Interaction:** Allow the user to pause real-time processing and manually type questions/instructions to the LLM via the GUI. *(Future enhancement)*.
+*   **Logging:** Implement comprehensive logging for transcription, prompts, responses, and full Gemini conversation history for debugging. Archive old logs. *(Implemented)*.
+
+## 3. User Experience (Initial Focus)
+
+*   The primary user interface will be a simple GUI built with PyQt6.
+*   The main interaction point will be a scrollable text area (`QTextBrowser`) displaying LLM suggestions styled for readability (e.g., basic D&D theme via CSS).
+*   Output will be rendered from Markdown to HTML for display.
+*   Essential controls (Start/Stop) will be provided. Manual text input is a lower priority future enhancement.
+
+## 4. Technical Architecture & Stack
+
+*   **Language:** Python (latest stable, e.g., 3.10+)
+*   **Audio Input:** `sounddevice` or `pyaudio` (for live); file playback for testing.
+*   **Real-time Transcription:** `ufal/whisper_streaming` client connecting to a local WhisperLive server (`ghcr.io/collabora/whisperlive-gpu:latest`) running via Docker, using `faster-whisper` backend with GPU/CUDA acceleration.
+*   **Transcription Accumulation:** Custom `TranscriptAccumulator` class using `nltk` for sentence boundary detection to create meaningful chunks.
+*   **LLM Gatekeeper:** `ollama` Python client connecting to a local Ollama server running `mistral:latest`.
+*   **LLM API Client:** `google-generativeai` SDK for Python (using `gemini-1.5-flash` model).
+*   **GUI:** `PyQt6`.
+*   **Markdown Rendering:** `Markdown` library or similar, rendered in `QTextBrowser`.
+*   **Context Loading:** Custom Python scripts (`context_loader.py`) reading `.txt`/`.md` files based on campaign JSON config.
+*   **Environment:** Optimized for Windows 10/11 with NVIDIA GPU (RTX 4070 tested) using CUDA. Managed via `.venv` and `requirements.txt`. API keys managed via `.env`.
+
+## 5. Development Roadmap & Approach (Iterative)
+
+The project follows a phased, iterative approach as tracked in `checklist.md` and `handoff.md`.
+
+*   **Phase 1 (Setup):** Basic project structure, dependencies. *(Completed)*
+*   **Phase 2 (Context Prep):** PDF conversion, gathering context files. *(Completed)*
+*   **Phase 3 (Integration):** Connecting transcription (file playback), context loading, Ollama gatekeeper, and conditional Gemini LLM calls in the main script (`src/dms_assistant.py`). *(Completed)*
+*   **Phase 4 (GUI - Current Focus):** Develop the PyQt6 GUI for displaying LLM output. Convert Markdown responses to HTML for rendering in `QTextBrowser`. Apply basic styling. *(Next Immediate Step)*
+*   **Future Phases/Enhancements:**
+    *   Live microphone input integration.
+    *   GUI enhancements (manual input, suggestion management).
+    *   Refinement of prompting, chunking, and gatekeeper logic.
+    *   Dynamic context updates.
+    *   Investigate Gemini context caching.
+    *   Player transcription/diarization.
+    *   Packaging for distribution.
+
+## 6. Logical Dependency Chain (Current State)
+
+Development prioritizes getting a functional end-to-end pipeline first, then building the user interface.
+
+1.  Core transcription and LLM pipeline (file input -> transcription -> gatekeeper -> LLM -> console output) is complete.
+2.  The immediate next step is building the GUI (Phase 4) to display the LLM output effectively.
+3.  Live audio input will follow the basic GUI implementation.
+
+## 7. Risks and Mitigations
+
+*   **Real-time Performance:** Transcription and LLM latency are critical. Mitigation: Use GPU-accelerated Whisper, efficient chunking, local gatekeeper LLM, optimize prompts.
+*   **Transcription Accuracy:** Whisper model performance may vary. Mitigation: Use appropriate Whisper model size, explore future fine-tuning or custom vocabulary if needed.
+*   **LLM Quality/Relevance:** LLM output might not always be helpful. Mitigation: Refine system prompts, context provided, chunking strategy, gatekeeper effectiveness. Experiment with different LLM trigger methods.
+*   **GUI Responsiveness:** Long sessions might slow down GUI if not handled properly. Mitigation: Use efficient appending methods (`QTextBrowser.append`) instead of full re-renders.
+*   **Changing Requirements:** Project scope may evolve. Mitigation: Use Taskmaster for iterative planning and updates (`update`, `add_task` tools). Maintain clear handoff/checklist documents.
+
+## 8. Input / Output Formats
+
+*   **Context Input:** `.txt` or `.md` files listed in campaign-specific `.json` config.
+*   **Audio Input:** Live microphone stream or `.wav`/`.flac` file for testing.
+*   **Transcription Output (Internal):** String data.
+*   **LLM Output:** Markdown formatted text.
+*   **GUI Display:** HTML rendered from LLM's Markdown output.
+
+## 9. Non-Functional Requirements
+
+*   **Performance:** Low latency (< 5s target).
+*   **Hardware:** Windows 10/11, NVIDIA GPU (CUDA).
+*   **Modularity:** Swappable components (especially LLM).
+*   **Usability:** Simple, clear GUI. 
