@@ -182,6 +182,8 @@ node_modules/
 *.njsproj
 *.sln
 *.sw?
+*.wav
+*.flac
 # OS specific
 # Task files
 tasks.json

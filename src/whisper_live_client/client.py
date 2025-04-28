@@ -323,14 +323,21 @@ class TranscriptionTeeClient:
         self.chunk = 4096
         self.format = pyaudio.paInt16
         self.channels = 1
-        self.rate = 16000
+        self.rate = 16000 # Default rate, might be overridden by file
         self.record_seconds = 60000
         self.save_output_recording = save_output_recording
         self.output_recording_filename = output_recording_filename
         self.mute_audio_playback = mute_audio_playback
         self.frames = b""
         self.p = pyaudio.PyAudio()
+        self.stream = None # Initialize stream as None
+        # --- Added for playback position tracking ---
+        self.current_playback_frame = 0
+        self.current_frame_rate = None # Will be set when file is opened
+        # -------------------------------------------
         try:
+            # Attempt to open default input stream only if not playing file initially
+            # This might be needed for other modes, keep for now but be aware
             self.stream = self.p.open(
                 format=self.format,
                 channels=self.channels,
@@ -338,11 +345,16 @@ class TranscriptionTeeClient:
                 input=True,
                 frames_per_buffer=self.chunk,
             )
+            # Immediately stop and close if only used for initialization check
+            if self.stream.is_active():
+                self.stream.stop_stream()
+            self.stream.close()
+            self.stream = None # Reset after check
         except OSError as error:
-            print(f"[WARN]: Unable to access microphone. {error}")
+            print(f"[WARN]: Unable to access default microphone. {error}")
             self.stream = None
 
-    def __call__(self, audio=None, rtsp_url=None, hls_url=None, save_file=None):
+    def __call__(self, audio=None, rtsp_url=None, hls_url=None, save_file=None, start_time=0.0):
         """
         Start the transcription process.
 
@@ -351,8 +363,11 @@ class TranscriptionTeeClient:
         will be played and streamed to the server; otherwise, it will perform live recording.
 
         Args:
-            audio (str, optional): Path to an audio file for transcription. Default is None, which triggers live recording.
-
+            audio (str, optional): Path to an audio file for transcription.
+            start_time (float, optional): Time in seconds to start playback from. Default is 0.0.
+            rtsp_url (str, optional): The URL of the RTSP stream source.
+            hls_url (str, optional): The URL of the HLS stream source.
+            save_file (str, optional): Local path to save the network stream.
         """
         assert sum(
             source is not None for source in [audio, rtsp_url, hls_url]
@@ -370,7 +385,7 @@ class TranscriptionTeeClient:
             self.process_hls_stream(hls_url, save_file)
         elif audio is not None:
             resampled_file = utils.resample(audio)
-            self.play_file(resampled_file)
+            self.play_file(resampled_file, start_time=start_time)
         elif rtsp_url is not None:
             self.process_rtsp_stream(rtsp_url)
         else:
@@ -398,67 +413,122 @@ class TranscriptionTeeClient:
             if (unconditional or client.recording):
                 client.send_packet_to_server(packet)
 
-    def play_file(self, filename):
+    def play_file(self, filename, start_time=0.0):
         """
-        Play an audio file and send it to the server for processing.
-
-        Reads an audio file, plays it through the audio output, and simultaneously sends
-        the audio data to the server for processing. It uses PyAudio to create an audio
-        stream for playback. The audio data is read from the file in chunks, converted to
-        floating-point format, and sent to the server using WebSocket communication.
-        This method is typically used when you want to process pre-recorded audio and send it
-        to the server in real-time.
-
+        Play an audio file from a specific start time and send it to the server.
         Args:
-            filename (str): The path to the audio file to be played and sent to the server.
+            filename (str): The path to the audio file.
+            start_time (float): Time in seconds to start playback from. Default 0.0.
         """
+        logging.info(f"Attempting to play file: {filename} starting at {start_time} seconds.")
+        self.current_playback_frame = 0 # Reset position at start of playback
+        self.current_frame_rate = None
 
-        # read audio and create pyaudio stream
-        with wave.open(filename, "rb") as wavfile:
-            self.stream = self.p.open(
-                format=self.p.get_format_from_width(wavfile.getsampwidth()),
-                channels=wavfile.getnchannels(),
-                rate=wavfile.getframerate(),
-                input=True,
-                output=True,
-                frames_per_buffer=self.chunk,
-            )
-            chunk_duration = self.chunk / float(wavfile.getframerate())
-            try:
-                while any(client.recording for client in self.clients):
-                    data = wavfile.readframes(self.chunk)
-                    if data == b"":
-                        break
+        try:
+            with wave.open(filename, "rb") as wavfile:
+                frame_rate = wavfile.getframerate()
+                self.current_frame_rate = frame_rate # Store frame rate
+                n_frames = wavfile.getnframes()
+                total_duration = n_frames / float(frame_rate)
+                logging.info(f"Audio file details: Rate={frame_rate}, Frames={n_frames}, Duration={total_duration:.2f}s")
 
-                    audio_array = self.bytes_to_float_array(data)
-                    self.multicast_packet(audio_array.tobytes())
-                    if self.mute_audio_playback:
-                        time.sleep(chunk_duration)
+                # Reset stream before opening new one
+                if self.stream:
+                    if self.stream.is_active(): self.stream.stop_stream()
+                    self.stream.close()
+                self.stream = self.p.open(
+                    format=self.p.get_format_from_width(wavfile.getsampwidth()),
+                    channels=wavfile.getnchannels(),
+                    rate=frame_rate,
+                    input=False, # Input is from file, not mic
+                    output=not self.mute_audio_playback, # Only open output if not muted
+                    frames_per_buffer=self.chunk,
+                )
+                chunk_duration = self.chunk / float(frame_rate)
+
+                # --- Start from specific time --- 
+                start_frame = 0
+                if start_time > 0.0:
+                    start_frame = int(start_time * frame_rate)
+                    if start_frame < n_frames:
+                        logging.info(f"Seeking to frame {start_frame} (time {start_time:.2f}s)")
+                        wavfile.setpos(start_frame)
+                        self.current_playback_frame = start_frame # Set initial frame position
                     else:
-                        self.stream.write(data)
-    
-                wavfile.close()
+                        logging.warning(f"Start time {start_time:.2f}s is beyond audio duration {total_duration:.2f}s. Starting from beginning.")
+                        start_frame = 0
+                        self.current_playback_frame = 0
+                # ---------------------------------
 
+                try:
+                    while any(client.recording for client in self.clients):
+                        data = wavfile.readframes(self.chunk)
+                        if data == b"":
+                            logging.info("End of audio file reached.")
+                            # Update position one last time for accurate end
+                            self.current_playback_frame = wavfile.tell()
+                            break
+
+                        # Update playback frame position *before* potential sleep/write
+                        self.current_playback_frame = wavfile.tell()
+
+                        audio_array = self.bytes_to_float_array(data)
+                        self.multicast_packet(audio_array.tobytes())
+
+                        if self.stream and self.stream.is_active() and not self.mute_audio_playback:
+                           try:
+                               self.stream.write(data)
+                           except OSError as e:
+                               logging.warning(f"Error writing to audio stream (might be closed): {e}")
+                               break
+                        else:
+                           time.sleep(chunk_duration)
+
+                finally:
+                    logging.info("Finished reading/playing audio loop.")
+                    # --- Ensure position reflects end if loop finished naturally --- 
+                    # self.current_playback_frame = wavfile.tell() # Already set in loop/break
+                    # -----------------------------------------------------------
+                    wavfile.close()
+                    if self.stream:
+                        if self.stream.is_active():
+                           self.stream.stop_stream()
+                        self.stream.close()
+                        self.stream = None
+
+                # Final steps outside the inner try/finally
                 for client in self.clients:
                     client.wait_before_disconnect()
                 self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
                 self.write_all_clients_srt()
-                self.stream.close()
                 self.close_all_clients()
 
-            except KeyboardInterrupt:
-                wavfile.close()
+        except FileNotFoundError:
+             logging.error(f"Audio file not found: {filename}")
+        except wave.Error as e:
+             logging.error(f"Error opening or reading WAV file {filename}: {e}")
+        except Exception as e:
+            logging.error(f"An unexpected error occurred during file playback: {e}", exc_info=True)
+            if hasattr(self, 'stream') and self.stream and self.stream.is_active():
                 self.stream.stop_stream()
                 self.stream.close()
-                self.p.terminate()
-                self.close_all_clients()
-                self.write_all_clients_srt()
-                print("[INFO]: Keyboard interrupt.")
-            finally:
-                # Ensure sentinel is placed even if loop exits unexpectedly (except KeyboardInterrupt)
-                logging.debug("play_file finished loop or encountered issue, putting sentinel.")
-                for client in self.clients:
-                    client._put_sentinel_on_queue()
+            self.close_all_clients()
+        finally:
+            logging.debug("play_file final cleanup, putting sentinel on queue.")
+            for client in self.clients:
+                client._put_sentinel_on_queue()
+
+    def get_current_playback_position(self) -> float:
+        """Returns the current playback position in seconds."""
+        if self.current_frame_rate and self.current_frame_rate > 0:
+            # Ensure frame number is not negative (though unlikely)
+            frame = max(0, self.current_playback_frame)
+            position_sec = float(frame) / self.current_frame_rate
+            # logging.debug(f"get_current_playback_position: frame={frame}, rate={self.current_frame_rate}, time={position_sec:.2f}s")
+            return position_sec
+        else:
+            logging.warning("Cannot get playback position: frame rate not set or invalid.")
+            return 0.0
 
     def process_rtsp_stream(self, rtsp_url):
         """
@@ -761,5 +831,13 @@ class TranscriptionClient(TranscriptionTeeClient):
         )
 
         logging.info("Transcription client initialized for file playback.")
+
+    def __call__(self, audio=None, rtsp_url=None, hls_url=None, save_file=None, start_time=0.0):
+        # Call the parent's __call__ method, passing start_time along
+        super().__call__(audio=audio, rtsp_url=rtsp_url, hls_url=hls_url, save_file=save_file, start_time=start_time)
+
+    def get_current_playback_position(self) -> float:
+        # TranscriptionTeeClient holds the state, so we call its method
+        return super().get_current_playback_position()
 
 

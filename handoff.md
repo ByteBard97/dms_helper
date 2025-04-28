@@ -4,43 +4,58 @@
 
 ---
 
-**Date:** 2025-04-27 (Updated End of Session)
+**Date:** 2025-04-28 (End of Session)
 
 **Recent Activity (This Session):**
 
-1.  **Implemented Gemini API Call:**
-    *   Added code to `src/dms_assistant.py` to call `chat_session.send_message()` within the `if gatekeeper_decision == "YES":` block.
-    *   Integrated logic to handle the Gemini response, extracting the text.
-    *   Added logging for the raw response object and the extracted text.
-    *   Currently printing the response text directly to the console.
-2.  **Enhanced Logging:**
-    *   Added logic to `src/dms_assistant.py` to automatically archive `.log` files from previous runs into a `logs/archive/` subdirectory on startup.
-    *   Created a new dedicated logger (`gemini_context`) and log file (`gemini_context_<timestamp>.log`) to store the full conversation history (initial context, user prompts, model responses) sent to/from the Gemini API for debugging and analysis.
-3.  **Tested End-to-End Flow:**
-    *   Successfully ran the script (`python src/dms_assistant.py`) with the audio file.
-    *   Confirmed: Log archiving worked, transcription ran, gatekeeper filtered chunks, Gemini was called successfully for approved chunks, and the response was logged and printed.
+1.  **GUI Implementation (PyQt5):**
+    *   Created core GUI files: `src/dms_gui.py` (main execution), `src/main_window.py` (QMainWindow logic).
+    *   Used `QWebEngineView` for the main display area to render HTML.
+    *   Added basic buttons ("Start", "Stop") and a checkbox ("Show User Speech").
+    *   Implemented logic to load initial HTML structure and CSS (`css/dnd_style.css`).
+    *   Added test buttons for rendering sample Markdown.
+2.  **Logging Overhaul:**
+    *   Integrated `LogManager` (`src/log_manager.py`) for centralized logging config.
+    *   Replaced most `print` statements with calls to appropriate loggers (`app_logger`, `conv_logger`, `raw_transcript_logger`).
+    *   Implemented JSONL format for conversation history (`logs/session.log.jsonl`) capturing USER and ASSISTANT turns.
+    *   Implemented separate logging for raw transcription segments (`logs/raw_transcript.log`).
+    *   Configured log file archiving.
+3.  **Transcription Client Integration & Playback Persistence:**
+    *   Integrated `TranscriptionClient` (`src/whisper_live_client/client.py`) with the GUI.
+    *   Modified client to accept `start_time` for playback.
+    *   Implemented `get_current_playback_position`.
+    *   Added logic in `MainWindow` to save the last playback position to `config.json` on stop and load it on start.
+4.  **Markdown Rendering:**
+    *   Created `src/markdown_utils.py` with `markdown_to_html_fragment`.
+    *   Implemented `append_markdown_output` in `MainWindow` to render and display HTML in the `QWebEngineView`.
+5.  **Processing Logic Refactoring & Debugging:**
+    *   Refactored `_maybe_process_next_input` multiple times to handle chunk processing, gatekeeper logic (now bypassed), and LLM triggering.
+    *   Introduced and fixed several `AttributeError` issues related to `TranscriptAccumulator` and method calls.
+    *   Adjusted queue handling between `handle_transcription_result` and `_maybe_process_next_input`.
 
 **Current Status:**
 
-*   The full pipeline (Transcription -> Accumulation -> Gatekeeper Check -> Conditional Gemini API Call -> Response Logging/Printing) is functional using file playback.
-*   The script archives old logs and creates detailed logs for raw transcript, prompts, responses, the combined session, and the specific Gemini conversation context.
-*   Gemini responses are received but currently only printed to the console as raw text (including Markdown syntax).
+*   The application launches, initializes components, and loads configuration/context.
+*   Transcription client connects, plays audio from the saved position, and produces transcript chunks via the `TranscriptAccumulator`.
+*   Chunks are logged correctly to `raw_transcript.log`.
+*   The processing logic (`_maybe_process_next_input`) *is* being triggered for these chunks (logs confirm this).
+*   Conversation logging to `session.log.jsonl` appears functional for USER turns.
+*   **Core Issue:** Despite chunks being processed, **no text (neither user chunks nor LLM responses) is appearing in the main GUI (`QWebEngineView`)**. The calls to `append_user_speech` and `append_markdown_output` seem to be missing or faulty in the current `_maybe_process_next_input` / `handle_llm_response` flow. The LLM response handling path might also be broken, as no ASSISTANT logs or GUI updates were seen in the last run.
+*   The Ollama gatekeeper check is currently bypassed.
 
-**Next Steps (Immediate):**
+**Next Steps (Immediate - For New Session):**
 
-*   **Begin GUI Development (Phase 4):**
-    *   Choose a suitable Python GUI library (PyQt6 is a strong candidate, mentioned in `checklist.md`).
-    *   Set up the basic application window structure.
-    *   Implement the core display component: a **scrollable text area** (e.g., `QTextBrowser`) capable of rendering rich text/HTML.
-    *   Modify `src/dms_assistant.py` to:
-        *   Convert the Markdown response from Gemini into HTML (using a library like `markdown` or `mistune`).
-        *   **Append** the rendered HTML block to the GUI's scrollable text area instead of printing to the console.
-        *   *(Note: Using the widget's native `append` method is efficient. It avoids performance degradation in long sessions by only rendering the new content, unlike approaches that would require re-rendering the entire history each time.)*
-    *   Investigate applying basic D&D-themed styling (fonts, colors) to the GUI display area using CSS.
+1.  **Debug GUI Updates:**
+    *   Trace the execution flow from when a chunk is retrieved in `_maybe_process_next_input` to when `append_user_speech` should be called. Verify it *is* called and the `user_text` is correct.
+    *   Trace the flow from `trigger_llm_request` through the `llm_worker_func`, the `llm_response_received.emit`, to `handle_llm_response`. Verify the signal is emitted/received correctly.
+    *   Verify `append_markdown_output` is called within `handle_llm_response` and the `response_markdown` is correct.
+    *   Inspect the JavaScript logic within `append_user_speech` and `append_markdown_output` for potential errors preventing DOM updates in the `QWebEngineView`.
+2.  **Restore Gatekeeper:** Once GUI updates are reliably working, uncomment and test the gatekeeper logic in `_maybe_process_next_input`.
+3.  **Continue Checklist:** Proceed with remaining Phase 4 GUI items (styling, etc.).
 
 ---
 
-## Previous Handoff (2025-04-27 - Start of Session)
+## Previous Handoff (2025-04-27 - End of Session)
 
 **Date:** 2025-04-27
 

@@ -1,0 +1,38 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Enforces correct path handling for Taskmaster MCP tool calls, especially on Windows.
+globs: N/A # Applies conceptually to tool calls, not specific files.
+alwaysApply: true
+---
+
+-   **Problem:** The system context might provide the workspace root path in a URI-encoded format (e.g., `/c%3A/Users/...`) on Windows. Taskmaster tools may fail to resolve relative paths or function correctly if this encoded path is used directly in the `projectRoot` parameter, especially if the `file` parameter is omitted.
+
+-   **Required Handling:**
+    -   **Path Conversion:** When calling *any* Taskmaster MCP tool:
+        -   Check if the provided `projectRoot` path starts with `/drive%3A/` (e.g., `/c%3A/`).
+        -   If it does, **convert it** internally to the standard Windows absolute path format (e.g., `C:/Users/...`) before using it in the tool call.
+        -   Use only the standard, converted absolute path for the `projectRoot` parameter.
+    -   **Mandatory `file` Parameter:** For *any* Taskmaster MCP tool that operates on `tasks.json` (e.g., `get_tasks`, `set_task_status`, `add_task`, `update_task`, etc.):
+        -   **ALWAYS** construct the full, standard absolute path to the target `tasks.json` file (typically `[converted_projectRoot]/tasks/tasks.json`).
+        -   **ALWAYS** provide this explicit, absolute path using the `file` parameter in the tool call.
+        -   **DO NOT** rely solely on the `projectRoot` parameter for the tool to find `tasks.json`.
+
+-   **Example (Correct Call):**
+    ```python
+    # Assuming workspace path provided was /c%3A/Users/geoff/proj
+    # Internally convert: project_root_abs = "C:/Users/geoff/proj"
+    # Construct file path: tasks_file_abs = "C:/Users/geoff/proj/tasks/tasks.json"
+
+    default_api.mcp_taskmaster-ai_get_tasks(
+        projectRoot=project_root_abs,
+        file=tasks_file_abs, # MUST be provided
+        withSubtasks=True
+    )
+    ```
+
+
+-   **Rationale:** Explicitly providing the standard absolute path via the `file` parameter bypasses potential issues with relative path resolution and URI encoding interpretation within the tool or its underlying libraries, ensuring reliable access to `tasks.json`.

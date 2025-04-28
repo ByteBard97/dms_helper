@@ -22,14 +22,15 @@ class ConfigManager:
             "general": {
                 "llm_model_name": "gemini-1.5-flash",
                 "gatekeeper_model": "mistral:latest",
-                "mute_playback": True
+                "mute_playback": False
             },
             "paths": {
                 "campaign_config": "source_materials/ceres_group/ceres_odyssey.json",
                 "input_audio": "source_materials/recording_of_dm_resampled.wav",
                 "gatekeeper_prompt": "prompts/gatekeeper_prompt.md",
                 "main_prompt": "prompts/dm_assistant_prompt.md",
-                "session_log": "logs/latest_session.log"
+                "session_log": "logs/latest_session.log",
+                "css_file": "css/dnd_style.css"
             },
             "servers": {
                 "transcription_host": "localhost",
@@ -41,6 +42,9 @@ class ConfigManager:
             },
             "session_state": {
                 "last_audio_position_sec": 0.0
+            },
+            "audio_settings": {
+                "last_playback_position": 0.0
             }
         }
         self.data = self.defaults.copy() # Start with defaults

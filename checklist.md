@@ -41,25 +41,25 @@
   - [x] Clean transcript data (e.g., remove timestamps if present). *(Not currently needed)*
   - [x] Implement transcript accumulation logic (buffer segments based on pauses, sentence ends, time, etc.). *(Using NLTK)*
   - [x] Develop prompt templates/strategies for different tasks (e.g., "Summarize:", "Lookup rule:", "Roleplay NPC:"). *(Loaded base template)*
-  - [x] Send formatted prompt (instruction + accumulated transcript) to the LLM `ChatSession`. *(Implemented conditionally based on gatekeeper)*
-  - [x] Display the LLM's response to the user (console output). *(Implemented)*
+  - [x] Send formatted prompt (instruction + accumulated transcript) to the LLM `ChatSession`. *(Implemented conditionally based on gatekeeper - currently bypassed)*
+  - [ ] Display the LLM's response to the user (console output). *(Replaced with GUI display - currently broken)*
   - [x] Handle end-of-file / graceful shutdown. *(Basic handling via sentinel/shutdown)*
 - [x] **Refine and Test:**
-  - [x] Test the end-to-end flow using the FLAC file. *(Completed)*
+  - [x] Test the end-to-end flow using the FLAC file. *(Flow confirmed, but GUI display broken)*
   - [x] Adjust transcript accumulation and prompting strategies based on results. *(Basic gatekeeper prompt tested, further refinement possible)*
 
 - [ ] ***Future Enhancements (Phase 4+):***
   - [ ] Add live microphone input as an alternative mode.
   - [ ] **Develop a native GUI (Next Step):**
-    - [ ] Choose library: **PyQt6** (Decision made).
-    - [ ] Set up basic window structure.
-    - [ ] Implement core display: Use **QTextBrowser** for scrollable, appendable LLM output.
-    - [ ] Implement **Markdown-to-HTML** conversion (e.g., using `Markdown` library) before appending to `QTextBrowser`.
-    - [ ] Apply basic **D&D-like styling** via CSS (fonts, colors).
+    - [x] Choose library: **PyQt5** (Used PyQt5 instead of 6).
+    - [x] Set up basic window structure.
+    - [x] Implement core display: Use **QWebEngineView** for scrollable, appendable LLM output. *(Needs debugging)*
+    - [x] Implement **Markdown-to-HTML** conversion (e.g., using `Markdown` library) before appending to display. *(Implemented in markdown_utils.py)*
+    - [ ] Apply basic **D&D-like styling** via CSS (fonts, colors). *(CSS file created, application needs review)*
     - [ ] Add text input field (Lower priority).
   - [ ] Investigate Gemini API context caching.
   - [ ] More sophisticated prompting and state management.
-  - [ ] Implement local LLM/classifier pre-filter for transcript chunks to reduce cloud API calls (cost optimization).
+  - [ ] Implement local LLM/classifier pre-filter for transcript chunks to reduce cloud API calls (cost optimization). *(Gatekeeper implemented, currently bypassed)*
   - [ ] Implement forced chunk flushing via keyword/button (manual "send now").
   - [ ] Add selective transcription controls for live mode (Push-to-talk, Wake Word).
   - [ ] Allow manual text input for direct LLM queries/commands.

@@ -4,14 +4,21 @@ import queue # Import queue instead of deque
 import threading # Added for LLM worker
 import time      # Added for LLM worker simulation (will be removed)
 import os        # Added for API key
+import logging   # Keep import for potential direct use if needed elsewhere
 from dotenv import load_dotenv # Added for API key
 import google.generativeai as genai # Added for Gemini
 import ollama # Added for gatekeeper
 from pathlib import Path # Added for prompt file path
 from typing import List, Dict, Any
 
+# Import the LogManager
+from log_manager import LogManager
+
+# Get logger instance (REMOVED - Use LogManager static methods)
+# logger = logging.getLogger("dms_helper")
+
 # Import the markdown conversion utility AND the CSS string
-from markdown_utils import markdown_to_html_fragment, DND_CSS 
+from markdown_utils import markdown_to_html_fragment, DND_CSS
 
 # Project imports (Ensure these are accessible)
 from context_loader import load_and_combine_context # Assuming context needed
@@ -38,6 +45,11 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        # Get logger instances from LogManager - DO THIS EARLY
+        self.app_logger = LogManager.get_app_logger()
+        self.conv_logger = LogManager.get_conversation_logger()
+        self.raw_transcript_logger = LogManager.get_raw_transcript_logger()
+        self.app_logger.info("Initializing MainWindow...") # Use LogManager
 
         # Initialize Config Manager FIRST
         self.config = ConfigManager() 
@@ -62,6 +74,7 @@ class MainWindow(QMainWindow):
         self.is_llm_processing = False 
         # Load initial checkbox state from config
         self.show_user_speech = self.config.get("ui_settings.show_user_speech", True)
+        LogManager.get_app_logger().info(f"Initial 'Show User Speech' state: {self.show_user_speech}") # Use LogManager
         
         # Transcription client and thread references
         self.transcription_client = None
@@ -144,81 +157,131 @@ class MainWindow(QMainWindow):
         self.start_button.clicked.connect(self.start_audio_processing)
         # Initially disable the stop button
         self.stop_button.setEnabled(False)
+        self.stop_button.clicked.connect(self.stop_audio_processing)
 
         # Connect the custom signal to the handler slot
         self.transcription_received.connect(self.handle_transcription_result)
         self.llm_response_received.connect(self.handle_llm_response) # Connect LLM signal
         # ----------------------------------------------
 
+        LogManager.get_app_logger().info("MainWindow initialization complete.") # Use LogManager
+
     def initialize_llm_and_gatekeeper(self):
-        """Initializes LLMs, loads prompts, and accumulator."""
-        print("Initializing Systems from Config...")
-        
-        # Get paths from config, resolving relative to project root
-        project_root = Path(__file__).parent.parent # Assuming main_window.py is in src/
+        """Initializes LLMs, loads prompts, accumulator, and potentially past session."""
+        app_logger = LogManager.get_app_logger()
+        app_logger.info("Initializing Systems from Config...")
+
+        # Get paths from config
+        project_root = Path(__file__).parent.parent
         gatekeeper_prompt_path_str = self.config.get("paths.gatekeeper_prompt", "prompts/gatekeeper_prompt.md")
         main_prompt_path_str = self.config.get("paths.main_prompt", "prompts/dm_assistant_prompt.md")
         campaign_config_path_str = self.config.get("paths.campaign_config", "source_materials/default_campaign.json")
-        
+
         gatekeeper_prompt_path = project_root / gatekeeper_prompt_path_str
         main_prompt_path = project_root / main_prompt_path_str
         campaign_config_path = project_root / campaign_config_path_str
-        
-        # Load Main Prompt Template
+
+        # Load prompts (Main and Gatekeeper)
         if main_prompt_path.is_file():
             self.main_prompt_template = main_prompt_path.read_text(encoding="utf-8")
-            print("Main prompt template loaded.")
+            app_logger.info("Main prompt template loaded.")
         else:
-            print(f"ERROR: Main prompt file not found: {main_prompt_path}")
-            self.main_prompt_template = "{transcript_chunk}" 
-            print("Warning: Using fallback main prompt.")
+            app_logger.error(f"ERROR: Main prompt file not found: {main_prompt_path}")
+            self.main_prompt_template = "{transcript_chunk}"
+            app_logger.warning("Warning: Using fallback main prompt.")
 
-        # Load Gatekeeper Prompt
         if gatekeeper_prompt_path.is_file():
             self.gatekeeper_prompt_template = gatekeeper_prompt_path.read_text(encoding="utf-8")
-            print("Gatekeeper prompt loaded.")
+            app_logger.info("Gatekeeper prompt loaded.")
         else:
-            print(f"ERROR: Gatekeeper prompt file not found: {gatekeeper_prompt_path}")
+            app_logger.error(f"ERROR: Gatekeeper prompt file not found: {gatekeeper_prompt_path}")
             self.gatekeeper_prompt_template = "Context: {accumulated_chunk}... Respond ONLY YES or NO."
-            print("Warning: Using fallback gatekeeper prompt.")
-            
+            app_logger.warning("Warning: Using fallback gatekeeper prompt.")
+
         # Initialize Ollama Client
         ollama_host = self.config.get("servers.ollama_host", "http://localhost:11434")
-        self.ollama_client = ollama.Client(host=ollama_host)
-        print(f"Ollama client initialized for host: {ollama_host}")
-        
+        try:
+            self.ollama_client = ollama.Client(host=ollama_host)
+            self.ollama_client.list()
+            app_logger.info(f"Ollama client initialized and connection verified for host: {ollama_host}")
+        except Exception as e:
+            app_logger.error(f"Failed to initialize or connect to Ollama client at {ollama_host}: {e}")
+            self.ollama_client = None
+
+        # --- Attempt to load previous session history --- 
+        initial_history = []
+        session_log_file_path = Path(f"{LogManager.CONVERSATION_LOG_FILENAME}.jsonl")
+        if session_log_file_path.exists():
+            app_logger.info(f"Found previous session log: {session_log_file_path}, attempting to load history.")
+            try:
+                with open(session_log_file_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            log_entry = json.loads(line.strip())
+                            role = log_entry.get("role")
+                            content = log_entry.get("content")
+                            if role and content:
+                                # Map role for Gemini (user/model)
+                                gemini_role = "model" if role == "assistant" else "user"
+                                initial_history.append({'role': gemini_role, 'parts': [content]})
+                            else:
+                                 app_logger.warning(f"Skipping invalid log line (missing role/content): {line.strip()}")
+                        except json.JSONDecodeError:
+                            app_logger.warning(f"Skipping invalid JSON line: {line.strip()}")
+                if initial_history:
+                    app_logger.info(f"Successfully loaded {len(initial_history)} entries from previous session.")
+                else:
+                     app_logger.info("Previous session log was empty or contained no valid entries.")
+            except Exception as e:
+                app_logger.error(f"Error reading or parsing session log file {session_log_file_path}: {e}", exc_info=True)
+                initial_history = [] # Fallback to empty history on error
+        else:
+             app_logger.info("No previous session log found.")
+
+        # --- If history loading failed or no previous session, load default context --- 
+        if not initial_history:
+            app_logger.info("Loading default initial context for LLM.")
+            initial_context = load_and_combine_context(str(campaign_config_path))
+            if not initial_context:
+                app_logger.warning(f"Warning: Failed to load context from {campaign_config_path}. Using fallback.")
+                initial_context = "No initial context provided."
+            else:
+                 app_logger.info(f"Loaded initial context from {campaign_config_path}")
+            # Default introductory turn
+            initial_history = [
+                {'role': 'user', 'parts': [initial_context]},
+                {'role': 'model', 'parts': ["Okay, context loaded."]}
+            ]
+
         # Initialize Gemini LLM
         load_dotenv()
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            print("ERROR: Google API Key not found...")
+            app_logger.error("ERROR: Google API Key not found...")
             self.chat_session = None
-            return 
+            return
 
         llm_model_name = self.config.get("general.llm_model_name", "gemini-1.5-flash")
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(llm_model_name)
-        
-        initial_context = load_and_combine_context(str(campaign_config_path)) # Pass absolute path string
-        if not initial_context:
-            print(f"Warning: Failed to load context from {campaign_config_path}. Using fallback.")
-            initial_context = "No initial context provided."
-            
-        initial_history = [
-            {'role': 'user', 'parts': [initial_context]},
-            {'role': 'model', 'parts': ["Okay, context loaded."]}
-        ]
-        self.chat_session = model.start_chat(history=initial_history)
-        print(f"LLM chat session started with model: {llm_model_name}")
+
+        # Start chat session using the prepared initial_history (either loaded or default)
+        try:
+            self.chat_session = model.start_chat(history=initial_history)
+            app_logger.info(f"LLM chat session started with model: {llm_model_name}. History length: {len(initial_history)}")
+        except Exception as e:
+            app_logger.error(f"ERROR: Failed to start Gemini chat session: {e}", exc_info=True)
+            self.chat_session = None
 
     def append_markdown_output(self, md_text: str):
         """Converts Markdown text to HTML fragment and appends it to the web view."""
+        LogManager.get_app_logger().debug("Appending markdown output to display.") # Use LogManager
         html_fragment = markdown_to_html_fragment(md_text)
         
         # --- DEBUG: Print the generated HTML fragment (can keep for now) ---
-        print("--- Generated HTML Fragment ---")
-        print(html_fragment)
-        print("-------------------------------")
+        LogManager.get_app_logger().debug("--- Generated HTML Fragment ---") # Use LogManager
+        LogManager.get_app_logger().debug(html_fragment) # Use LogManager
+        LogManager.get_app_logger().debug("-------------------------------") # Use LogManager
         # ---------------------------------------------
         
         # Safely encode the HTML fragment as a JSON string
@@ -240,6 +303,7 @@ class MainWindow(QMainWindow):
 
     def test_markdown_render(self):
         """Callback for the test render button."""
+        LogManager.get_app_logger().info("Test Render button clicked.") # Use LogManager
         # Updated sample markdown with HTML for stat block
         sample_markdown = """# Session Notes: The Whispering Caves
 
@@ -320,13 +384,14 @@ Elara spots a patch of glowing fungi near the stream.
 
     # Implement the callback for the new button
     def append_second_markdown(self):
+        LogManager.get_app_logger().info("Append Second Markdown button clicked.") # Use LogManager
         second_markdown = """# Interlude: The Forgotten Shrine\n\n## New Discovery\nThe party stumbles upon a hidden shrine, its walls covered in ancient glyphs.\n\n> *A faint humming fills the air, and the temperature drops.*\n\n### Shrine Features\n- A cracked obsidian altar\n- Flickering blue flames\n- Mysterious runes that glow when touched\n\n**Possible Actions:**\n- Attempt to decipher the runes (`DC 15 Arcana`).\n- Offer a sacrifice on the altar.\n- Search for hidden compartments.\n\n## Encounter: Animated Statues\nTwo stone statues animate and block the exit!\n\n| Name           | AC | HP | Attack         |\n| -------------- | -- | -- | ------------- |\n| Stone Guardian | 17 | 30 | Slam (+5, 2d6+3) |\n| Stone Guardian | 17 | 30 | Slam (+5, 2d6+3) |\n\n*The battle begins anew...*\n"""
         self.append_markdown_output(second_markdown)
 
     def on_user_speech_checkbox_changed(self, state):
         """Handles checkbox state change and saves it to config."""
         self.show_user_speech = self.user_speech_checkbox.isChecked()
-        print(f"Show User Speech set to: {self.show_user_speech}")
+        LogManager.get_app_logger().info(f"Show User Speech set to: {self.show_user_speech}") # Use LogManager
         # Save the new state to config
         self.config.set("ui_settings.show_user_speech", self.show_user_speech)
 
@@ -334,6 +399,7 @@ Elara spots a patch of glowing fungi near the stream.
     def append_user_speech(self, user_text: str):
         """Appends formatted user speech to the web view if the checkbox is checked."""
         if not self.show_user_speech:
+            LogManager.get_app_logger().debug("Show User Speech is off, not appending user text.") # Use LogManager
             return # Do nothing if checkbox is unchecked
 
         # Format the user speech (e.g., in a <pre> tag or a styled div)
@@ -358,206 +424,272 @@ Elara spots a patch of glowing fungi near the stream.
 
     # Placeholder methods for button actions
     # def start_listening(self):
-    #     print("Start button clicked (Not implemented)")
+    #     LogManager.get_app_logger().info("Start button clicked (Not implemented)")
     #     # Logic to start transcription/pipeline
 
     # def stop_listening(self):
-    #     print("Stop button clicked (Not implemented)")
+    #     LogManager.get_app_logger().info("Stop button clicked (Not implemented)")
     #     # Logic to stop transcription/pipeline 
 
     # --- Handle Transcription Segments --- 
     def handle_transcription_result(self, segments: List[Dict[str, Any]]):
         """Handles segments from signal: accumulates and queues chunks."""
+        app_logger = LogManager.get_app_logger()
         if not isinstance(segments, list):
-             print(f"Warning: handle_transcription_result received non-list data: {type(segments)}")
+             app_logger.warning(f"Warning: handle_transcription_result received non-list data: {type(segments)}")
              return
-             
+
+        # --- Log the raw segments to the dedicated raw transcript log --- 
+        raw_logger = LogManager.get_raw_transcript_logger()
+        raw_logger.info(f"RAW: {segments}") 
+        # --------------------------------------------------------------
+
         # Accumulate the segments to form chunks
         accumulated_chunk = self.accumulator.add_segments(segments)
 
         # If a valid chunk is returned, add it to the CHUNK queue
         if accumulated_chunk:
-            print(f"Accumulator produced chunk, adding to CHUNK queue: {accumulated_chunk[:80]}...")
-            self.chunk_queue.put(accumulated_chunk) # Put chunk in chunk_queue
+            app_logger.info(f"Accumulator produced chunk, adding to CHUNK queue: {accumulated_chunk[:80]}...")
+            self.chunk_queue.put(accumulated_chunk)
+            # --- Trigger processing check now that a chunk is queued --- 
             self._maybe_process_next_input()
+            # ----------------------------------------------------------
     # --- End Transcription Handling --- 
 
     def _maybe_process_next_input(self):
-        """Checks CHUNK queue, displays user chunk, runs gatekeeper..."""
-        if not self.chunk_queue.empty() and not self.is_llm_processing:
-            # Get the accumulated chunk from the CHUNK queue
-            chunk_to_process = self.chunk_queue.get()
-            print(f"Processing chunk from queue: {chunk_to_process[:80]}...")
-            
-            # --- Display the user chunk NOW (if toggled) --- 
-            self.append_user_speech(chunk_to_process) 
-            # -----------------------------------------------
-            
-            # --- Gatekeeper Check --- 
-            if not self.ollama_client or not self.gatekeeper_prompt_template:
-                print("Warning: Ollama gatekeeper not ready. Skipping...")
-                self.trigger_llm_request(chunk_to_process) # Pass the chunk 
-                return
-            
-            gatekeeper_prompt_formatted = self.gatekeeper_prompt_template.format(accumulated_chunk=chunk_to_process)
-            # ... (rest of gatekeeper logic sending gatekeeper_prompt_formatted)
-            # ... if gatekeeper says YES:
-            #         self.trigger_llm_request(chunk_to_process) # Pass the original chunk
-            # ... else:
-            #         self._maybe_process_next_input()
-            print("--- Sending to Gatekeeper --- ")
-            print(gatekeeper_prompt_formatted)
-            print("-----------------------------")
-            gatekeeper_model = self.config.get("general.gatekeeper_model", "mistral:latest")
-            start_time = time.time()
-            response = self.ollama_client.generate(
-                model=gatekeeper_model,
-                prompt=gatekeeper_prompt_formatted,
-                stream=False,
-                options={"temperature": 0.2}
-            )
-            end_time = time.time()
-            duration = end_time - start_time
-            gatekeeper_decision_raw = response.get("response", "").strip()
-            gatekeeper_decision = gatekeeper_decision_raw.upper()
-            print(f"--- Gatekeeper Response ({duration:.2f}s) --- ")
-            print(gatekeeper_decision_raw)
-            print(f"Decision: {gatekeeper_decision}")
-            print("---------------------------------")
-            if gatekeeper_decision == "YES":
-                 print("Gatekeeper approved. Triggering main LLM.")
-                 self.trigger_llm_request(chunk_to_process) # Pass the chunk
-            else:
-                 print("Gatekeeper rejected or response unclear. Skipping main LLM.")
-                 self._maybe_process_next_input() # Check queue again
+        """Checks CHUNK queue, displays user chunk, runs gatekeeper (bypassed), triggers LLM if ready.""" # Updated docstring
+        self.app_logger.debug("Checking if LLM processing can start...")
+        if self.is_llm_processing:
+            self.app_logger.debug("LLM is currently processing. Skipping.")
+            return
+
+        # --- Process from CHUNK queue --- 
+        if self.chunk_queue.empty():
+            self.app_logger.debug("Chunk queue empty. Nothing to process.")
+            return
+
+        # Get the chunk from the queue
+        try:
+            chunk_to_process = self.chunk_queue.get_nowait() # Use get_nowait as we already checked empty
+            self.app_logger.info(f"Processing chunk from queue: {chunk_to_process[:80]}...")
+            # --- Display User Speech Chunk --- 
+            self.append_user_speech(chunk_to_process)
+            # ---------------------------------
+        except queue.Empty:
+            self.app_logger.debug("Chunk queue became empty unexpectedly.") # Should not happen often
+            return
+        # --------------------------------
+
+        # --- Temporarily Bypass Gatekeeper --- 
+        self.app_logger.info("Gatekeeper check is currently BYPASSED.")
+        is_ready = True # Unconditionally proceed
+        # --- Original Gatekeeper Logic (Commented Out) ---
+        # self.app_logger.info("Checking gatekeeper...")
+        # is_ready = False # Default to not ready
+        # if not self.ollama_client or not self.gatekeeper_prompt_template:
+        #     self.app_logger.warning("Warning: Ollama gatekeeper client or template not ready. Assuming chunk IS ready.")
+        #     is_ready = True # Proceed if gatekeeper isn't configured
+        # else:
+        #     gatekeeper_prompt_formatted = self.gatekeeper_prompt_template.format(accumulated_chunk=accumulated_text)
+        #     self.app_logger.debug(f"Gatekeeper Prompt: {gatekeeper_prompt_formatted[:100]}...") 
+        #     gatekeeper_model = self.config.get("general.gatekeeper_model", "mistral:latest")
+        #     start_time = time.time()
+        #     try:
+        #         response = self.ollama_client.generate(
+        #             model=gatekeeper_model,
+        #             prompt=gatekeeper_prompt_formatted,
+        #             stream=False,
+        #             options={"temperature": 0.2}
+        #         )
+        #         end_time = time.time()
+        #         duration = end_time - start_time
+        #         gatekeeper_decision_raw = response.get("response", "").strip()
+        #         gatekeeper_decision = gatekeeper_decision_raw.upper()
+        #         self.app_logger.info(f"Gatekeeper Response ({duration:.2f}s) - Raw: '{gatekeeper_decision_raw}', Decision: {gatekeeper_decision}") 
+        #         if gatekeeper_decision == "YES":
+        #             is_ready = True
+        #         # else: is_ready remains False (default)
+        #     except Exception as e:
+        #         self.app_logger.error(f"Error during Ollama gatekeeper call: {e}", exc_info=True)
+        #         self.app_logger.warning("Gatekeeper check failed. Assuming chunk IS ready as a fallback.")
+        #         is_ready = True # Proceed on gatekeeper error
+        # --- End Original Gatekeeper Logic --- 
+
+        if is_ready:
+            self.app_logger.info("Proceeding to LLM (Gatekeeper Bypassed or Indicated Ready).") 
+            # --- Log User Input before sending --- 
+            try:
+                # Use the chunk_to_process from the queue
+                user_log_entry = {"role": "USER", "content": chunk_to_process}
+                self.conv_logger.info(json.dumps(user_log_entry))
+                self.app_logger.info(f"Logged USER content (len: {len(chunk_to_process)}) to conversation log.")
+            except Exception as log_e:
+                self.app_logger.error(f"Failed to log USER input to conversation log: {log_e}", exc_info=True)
+            # -------------------------------------
+            # Use the chunk_to_process from the queue
+            self.trigger_llm_request(chunk_to_process) 
+            # No need to clear accumulator buffer here - chunk was removed from queue
+            # self.accumulator.buffer = "" # REMOVED
         else:
-            # ... (handle queue empty or LLM busy)
-            if self.chunk_queue.empty():
-                print("Queue empty, nothing to process.")
-            elif self.is_llm_processing:
-                print("LLM is busy, waiting to process queue.")
+             # This branch should not be reached while gatekeeper is bypassed
+            self.app_logger.info("Gatekeeper indicates chunk is NOT ready. Accumulating further.")
 
-    # --- Assumed method that handles the LLM response (connected via signal) ---
-    # !!! IMPORTANT: Replace 'handle_llm_response' if your actual method name is different !!!
     def handle_llm_response(self, response_markdown: str):
-        """Handles the LLM response signal: displays, resets flag, checks CHUNK queue."""
-        print("Received MAIN LLM response signal.") 
-        self.append_markdown_output(response_markdown)
-        self.is_llm_processing = False # Reset flag AFTER processing response
-        print("LLM processing finished. Checking CHUNK queue...")
-        self._maybe_process_next_input() # Check for more queued input
-    # --- End Assumed Method ---
+        """Handles the received LLM response markdown."""
+        self.app_logger.info(f"Received LLM response (length: {len(response_markdown)}). Handling...")
+        # --- Log Assistant Response --- 
+        try:
+            assistant_log_entry = {"role": "ASSISTANT", "content": response_markdown}
+            self.conv_logger.info(json.dumps(assistant_log_entry))
+            self.app_logger.info(f"Logged ASSISTANT response (len: {len(response_markdown)}) to conversation log.")
+        except Exception as log_e:
+            self.app_logger.error(f"Failed to log ASSISTANT response to conversation log: {log_e}", exc_info=True)
+        # ------------------------------
 
-    # --- Placeholder for the method that triggers the LLM request --- 
-    # You should replace this with your actual implementation
+        self.append_markdown_output(response_markdown) # Append the actual response to the UI
+        self.is_llm_processing = False
+        self.app_logger.info("LLM processing finished. Ready for next input.")
+        # Check immediately if there's more data waiting
+        self._maybe_process_next_input() 
+
     def trigger_llm_request(self, chunk_text: str):
         """Formats prompt and starts LLM worker thread which emits signal."""
         # Set flag FIRST, before checking session
         self.is_llm_processing = True 
         
         if not self.chat_session or not self.main_prompt_template:
-            print("ERROR: LLM session or prompt template not ready.")
+            LogManager.get_app_logger().error("ERROR: LLM session or prompt template not ready.") # Use LogManager
             self.is_llm_processing = False 
             self._maybe_process_next_input()
             return
         
         # Format the prompt using the loaded template
         formatted_prompt = self.main_prompt_template.format(transcript_chunk=chunk_text)
-        print(f"Starting MAIN LLM worker thread...") 
+        LogManager.get_app_logger().info(f"Starting MAIN LLM worker thread...")  # Use LogManager
         
         def llm_worker_func(prompt_to_send):
             response_text = "Error: LLM call failed."
-            # Call Gemini directly, no try/except
-            print(f"MAIN LLM Thread: Sending formatted prompt...")
-            gemini_response = self.chat_session.send_message(prompt_to_send)
-            if hasattr(gemini_response, 'text'):
-                response_text = gemini_response.text
-            else:
-                response_text = f"Error: Unexpected LLM response format: {gemini_response}"
-                print(f"MAIN LLM Thread: Error - {response_text}") # Log specific format error
+            try:
+                # Call Gemini directly, no try/except
+                LogManager.get_app_logger().info(f"MAIN LLM Thread: Sending formatted prompt...") # Use LogManager
+                gemini_response = self.chat_session.send_message(prompt_to_send)
+                if hasattr(gemini_response, 'text'):
+                    response_text = gemini_response.text
+                    LogManager.get_app_logger().info(f"MAIN LLM Thread: Received response text (length: {len(response_text)})." ) # Use LogManager
+                else:
+                    response_text = f"Error: Unexpected LLM response format: {gemini_response}"
+                    LogManager.get_app_logger().error(f"MAIN LLM Thread: Error - {response_text}") # Use LogManager
+            except Exception as e:
+                LogManager.get_app_logger().error(f"MAIN LLM Thread: Error during Gemini API call: {e}", exc_info=True)
+                response_text = f"Error: Exception during LLM call: {e}"
             
             # --- Emit signal --- 
-            print(f"MAIN LLM Thread: Emitting response signal...")
+            LogManager.get_app_logger().info(f"MAIN LLM Thread: Emitting response signal...") # Use LogManager
             self.llm_response_received.emit(response_text)
             # -------------------
             
         worker_thread = threading.Thread(target=llm_worker_func, args=(formatted_prompt,))
+        worker_thread.daemon = True # Ensure thread exits if main app exits
         worker_thread.start()
 
     def start_audio_processing(self):
         """Initializes and starts the transcription client and monitoring thread."""
+        app_logger = LogManager.get_app_logger()
+        app_logger.info("Start Audio Processing button clicked.")
         if self.transcription_thread and self.transcription_thread.is_alive():
-            print("Transcription already running.")
+            app_logger.warning("Transcription already running.")
             return
 
-        # Get config values (as before)
+        # Get config values
         project_root = Path(__file__).parent.parent
         input_audio_path_str = self.config.get("paths.input_audio", "default_audio.wav")
         input_audio_path = str(project_root / input_audio_path_str)
         transcription_host = self.config.get("servers.transcription_host", "localhost")
         transcription_port = self.config.get("servers.transcription_port", 9090)
-        
-        print(f"Initializing transcription client for file: {input_audio_path}")
-        if not os.path.exists(input_audio_path):
-            print(f"ERROR: Input audio file not found at {input_audio_path}")
-            return
-            
-        # --- Clear the SEGMENT queue --- 
-        print("Clearing any previous SEGMENT queue data...")
-        while not self.segment_queue.empty():
-            try: self.segment_queue.get_nowait()
-            except queue.Empty: break
-        # ------------------------------
-        # --- Clear the CHUNK queue too --- 
-        print("Clearing any previous CHUNK queue data...")
-        while not self.chunk_queue.empty():
-             try: self.chunk_queue.get_nowait()
-             except queue.Empty: break
-        # -------------------------------
+        # --- Load last playback position --- 
+        start_playback_time = self.config.get("audio_settings.last_playback_position", 0.0)
+        app_logger.info(f"Attempting to start playback from: {start_playback_time:.2f} seconds")
+        # -----------------------------------
 
-        # --- FIX: Mute playback based on config --- 
+        app_logger.info(f"Initializing transcription client for file: {input_audio_path}")
+        if not os.path.exists(input_audio_path):
+            app_logger.error(f"ERROR: Input audio file not found at {input_audio_path}")
+            return
+
+        # Clear queues
+        app_logger.info("Clearing any previous SEGMENT queue data...") # Use LogManager
+        cleared_count = 0
+        while not self.segment_queue.empty():
+            try:
+                self.segment_queue.get_nowait()
+                cleared_count += 1
+            except queue.Empty:
+                break
+        app_logger.debug(f"Cleared {cleared_count} items from SEGMENT queue.") # Use LogManager
+        app_logger.info("Clearing any previous CHUNK queue data...") # Use LogManager
+        cleared_count = 0
+        while not self.chunk_queue.empty():
+             try:
+                 self.chunk_queue.get_nowait()
+                 cleared_count += 1
+             except queue.Empty:
+                 break
+        app_logger.debug(f"Cleared {cleared_count} items from CHUNK queue.") # Use LogManager
+
+        # Mute setting
         mute_setting = self.config.get("general.mute_playback", True)
         wrapper_args = {"mute_audio_playback": mute_setting}
-        print(f"Mute playback setting: {mute_setting}") # Log the setting being used
-        # -----------------------------------------
+        app_logger.info(f"Mute playback setting: {mute_setting}")
 
-        client_args = { 
-             "output_queue": self.segment_queue, # Use SEGMENT queue
-             "lang": None, "translate": False, "model": "large-v3", "use_vad": True, "log_transcription": False 
+        client_args = {
+             "output_queue": self.segment_queue,
+             "lang": None, "translate": False, "model": "large-v3", "use_vad": True, "log_transcription": False
         }
-        self.transcription_client = TranscriptionClient(
-            host=transcription_host,
-            port=transcription_port,
-            **client_args,
-            **wrapper_args 
-        )
-        print("Transcription client initialized.")
+        try:
+            # Initialize the client instance
+            self.transcription_client = TranscriptionClient(
+                host=transcription_host,
+                port=transcription_port,
+                **client_args,
+                **wrapper_args
+            )
+            app_logger.info("Transcription client instance initialized.")
+        except Exception as e:
+            app_logger.error(f"Failed to initialize TranscriptionClient: {e}", exc_info=True)
+            self.start_button.setEnabled(True)
+            self.stop_button.setEnabled(False)
+            return
 
         # Start the client logic (audio playback/sending) in its thread
-        print(f"Starting transcription client thread for file: {input_audio_path}")
+        # --- Pass start_time to the client call --- 
+        app_logger.info(f"Starting transcription client thread for file: {input_audio_path} at {start_playback_time:.2f}s")
         self.transcription_thread = threading.Thread(
-            target=self.transcription_client, 
-            args=(input_audio_path,),
+            target=self.transcription_client.__call__, # Target the __call__ method
+            kwargs={ # Pass arguments as kwargs
+                'audio': input_audio_path,
+                'start_time': start_playback_time
+            },
             daemon=True
         )
-        # --- NEW: Add a queue monitoring thread --- 
-        self.queue_monitor_stop_event = threading.Event() # Signal to stop monitor
+        # -----------------------------------------
+        
+        # Start monitor thread
+        self.queue_monitor_stop_event = threading.Event()
         self.queue_monitor_thread = threading.Thread(
             target=self._monitor_transcription_queue,
             daemon=True
         )
-        # ------------------------------------------
-        
+
         self.transcription_thread.start()
-        self.queue_monitor_thread.start() # Start the monitor thread too
-        print("Transcription and queue monitor threads started.")
+        self.queue_monitor_thread.start()
+        app_logger.info("Transcription and queue monitor threads started.")
 
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
 
     def _monitor_transcription_queue(self):
         """Monitors the SEGMENT queue, emits transcription_received signal."""
-        print("SEGMENT queue monitor thread started.")
+        LogManager.get_app_logger().info("SEGMENT queue monitor thread started.") # Use LogManager
         while not self.queue_monitor_stop_event.is_set():
             try:
                 # Get data from SEGMENT queue
@@ -567,51 +699,96 @@ Elara spots a patch of glowing fungi near the stream.
                 # --- Type Check --- 
                 if isinstance(data, list):
                     # Only emit if it's a list (expected segments)
+                    LogManager.get_app_logger().debug(f"Monitor received {len(data)} segments, emitting signal...") # Use LogManager
                     self.transcription_received.emit(data)
                 else:
                     # Log unexpected data type received from transcription client queue
-                    print(f"Warning: Received non-list data type from segment_queue: {type(data)}. Value: {str(data)[:100]}")
+                    LogManager.get_app_logger().warning(f"Received non-list data type from segment_queue: {type(data)}. Value: {str(data)[:100]}") # Use LogManager
                 # ----------------
                 
             except queue.Empty: continue
-        print("SEGMENT queue monitor thread finished.")
+        LogManager.get_app_logger().info("SEGMENT queue monitor thread finished.") # Use LogManager
 
     def stop_audio_processing(self):
-        print("Stop button clicked - Stopping transcription...")
-        
-        # 1. Signal the monitor thread to stop
-        if hasattr(self, 'queue_monitor_stop_event'):
-             self.queue_monitor_stop_event.set()
-             print("Queue monitor stop signal sent.")
-        
-        # 2. Signal the transcription client to stop (NEEDS IMPLEMENTATION in client)
-        # This is the hard part - the client library might not have a clean stop method.
-        # For now, we might have to rely on closing the connection or just joining the thread.
-        if self.transcription_client and hasattr(self.transcription_client, 'stop'):
-             print("Attempting to call client stop method...")
-             self.transcription_client.stop() # Hypothetical stop method
-        elif self.transcription_client and hasattr(self.transcription_client.client, 'close_websocket'):
-             print("Attempting to close client websocket...")
-             self.transcription_client.client.close_websocket()
+        # --- IMMEDIATE DEBUG PRINT --- 
+        try:
+            print("STOP BUTTON PRESSED - stop_audio_processing called", file=sys.stderr)
+            sys.stderr.flush() # Ensure it appears immediately
+        except Exception as e:
+            # Fallback just in case stderr write fails
+            print(f"STOP BUTTON PRESSED (stderr write failed: {e})")
+        # ---------------------------
+        app_logger = LogManager.get_app_logger()
+        app_logger.info("Stop button clicked - Stopping transcription...")
+
+        # --- Explicitly signal the client loop to stop --- 
+        if self.transcription_client and hasattr(self.transcription_client, 'client') and self.transcription_client.client:
+            app_logger.info("Attempting to set client.recording = False")
+            try:
+                self.transcription_client.client.recording = False
+            except Exception as e:
+                app_logger.error(f"Error setting client.recording flag: {e}")
         else:
-             print("Warning: No clean stop method found for transcription client.")
+            app_logger.warning("Cannot set client.recording flag: transcription_client or its client attribute is None.")
+
+        # --- Save current playback position BEFORE stopping client --- 
+        current_pos = 0.0
+        if self.transcription_client:
+            try:
+                if hasattr(self.transcription_client, 'get_current_playback_position'):
+                    current_pos = self.transcription_client.get_current_playback_position()
+                    app_logger.info(f"Current playback position: {current_pos:.2f} seconds.")
+                    self.config.set("audio_settings.last_playback_position", current_pos)
+                    app_logger.info(f"Saved playback position {current_pos:.2f} to config.")
+                else:
+                    app_logger.warning("Transcription client does not have get_current_playback_position method.")
+            except Exception as e:
+                app_logger.error(f"Error getting or saving playback position: {e}", exc_info=True)
+        else:
+            app_logger.warning("Cannot get playback position: transcription client is None.")
+
+        # 1. Signal the monitor thread to stop
+        if hasattr(self, 'queue_monitor_stop_event') and self.queue_monitor_stop_event:
+            self.queue_monitor_stop_event.set()
+            app_logger.info("Queue monitor stop signal sent.")
+        else:
+             app_logger.warning("Queue monitor stop event not found or already None.")
+
+        # 2. Signal the transcription client to stop (websocket etc.)
+        if self.transcription_client:
+            if hasattr(self.transcription_client, 'stop'):
+                 LogManager.get_app_logger().info("Attempting to call client stop method...") # Use LogManager
+                 try:
+                      self.transcription_client.stop() # Hypothetical stop method
+                 except Exception as e:
+                     LogManager.get_app_logger().error(f"Error calling client stop method: {e}", exc_info=True)
+            elif hasattr(self.transcription_client, 'client') and hasattr(self.transcription_client.client, 'close_websocket'):
+                 LogManager.get_app_logger().info("Attempting to close client websocket...") # Use LogManager
+                 try:
+                     self.transcription_client.client.close_websocket()
+                 except Exception as e:
+                     LogManager.get_app_logger().error(f"Error closing client websocket: {e}", exc_info=True)
+            else:
+                 LogManager.get_app_logger().warning("No clean stop method found for transcription client.") # Use LogManager
+        else:
+             LogManager.get_app_logger().info("Transcription client is None, nothing to stop.")
 
         # 3. Join threads (with timeout)
         if self.transcription_thread and self.transcription_thread.is_alive():
-            print("Waiting for transcription thread to join...")
+            LogManager.get_app_logger().info("Waiting for transcription thread to join...") # Use LogManager
             self.transcription_thread.join(timeout=2.0)
             if self.transcription_thread.is_alive():
-                print("Warning: Transcription thread did not join cleanly.")
+                LogManager.get_app_logger().warning("Transcription thread did not join cleanly after timeout.") # Use LogManager
             else:
-                print("Transcription thread joined.")
+                LogManager.get_app_logger().info("Transcription thread joined.") # Use LogManager
         
         if hasattr(self, 'queue_monitor_thread') and self.queue_monitor_thread.is_alive():
-            print("Waiting for queue monitor thread to join...")
+            LogManager.get_app_logger().info("Waiting for queue monitor thread to join...") # Use LogManager
             self.queue_monitor_thread.join(timeout=1.0)
             if self.queue_monitor_thread.is_alive():
-                print("Warning: Queue monitor thread did not join cleanly.")
+                LogManager.get_app_logger().warning("Queue monitor thread did not join cleanly after timeout.") # Use LogManager
             else:
-                 print("Queue monitor thread joined.")
+                 LogManager.get_app_logger().info("Queue monitor thread joined.") # Use LogManager
         
         # 4. Clean up resources
         self.transcription_client = None
@@ -624,18 +801,41 @@ Elara spots a patch of glowing fungi near the stream.
         while not self.chunk_queue.empty():
             try: self.chunk_queue.get_nowait() 
             except queue.Empty: break
-        print("Resources cleaned up.")
+        LogManager.get_app_logger().info("Resources cleaned up.") # Use LogManager
 
         # 5. Update UI state
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
-        print("Transcription stopped.")
+        app_logger.info("Transcription stopped.") # Use LogManager
 
-# Need to import QtCore for invokeMethod
-from PyQt5.QtCore import Qt, QUrl, QMetaObject, Q_ARG
+    def closeEvent(self, event):
+        """Ensures background threads are stopped cleanly on window close."""
+        self.app_logger.info("Close event triggered. Stopping background processes...")
+        self.stop_audio_processing() # Attempt to stop threads gracefully
+        # Wait a short moment for threads to potentially finish stopping
+        # time.sleep(0.5) 
+        super().closeEvent(event) # Call the default handler
 
-# Ensure handle_llm_response is decorated or correctly registered if needed for invokeMethod,
-# but direct method name string usually works for simple cases.
-# def handle_llm_response(self, response_markdown: str):
-#     ... (existing implementation is fine) ...
+# --- Main Execution --- 
+def main():
+    # Initialize logging BEFORE anything else
+    LogManager.initialize()
+    logger = LogManager.get_app_logger()
+    logger.info("Application starting...")
+
+    app = QApplication(sys.argv)
+
+    # Force dark theme (optional, but good for consistency)
+    # ... (dark theme setup) ...
+
+    window = MainWindow()
+    window.show()
+    logger.info("Main window shown.")
+
+    exit_code = app.exec_()
+    logger.info(f"Application exiting with code {exit_code}.")
+    sys.exit(exit_code)
+
+if __name__ == "__main__":
+    main()
         
