@@ -2,6 +2,7 @@ import re
 import logging
 import nltk # Added for sentence tokenization
 from typing import Optional, List, Dict, Any
+import sys
 
 # Constants moved here as they are specific to the accumulator logic
 MIN_SENTENCES_PER_CHUNK = 3
@@ -33,11 +34,12 @@ class TranscriptAccumulator:
             logging.error(f"An unexpected error occurred checking for NLTK data: {e}", exc_info=True)
             raise RuntimeError("Failed checking for NLTK data.") from e
 
-        self.buffer = "" # Buffer for accumulating *completed* text
+        self.buffer = [] # Buffer for accumulating *completed* text
         self.last_processed_end_time = 0.0 # Track end time of last committed segment
         self.min_sentences = min_sentences
         # self.max_sentences = max_sentences # Keep commented
         self.min_words = min_words
+        self.sentence_count = 0 # Added for sentence count tracking
         # Removed complex sentence split pattern, will use nltk.sent_tokenize
         logging.info(f"TranscriptAccumulator initialized (NLTK, MinSentences: {self.min_sentences}, MinWords: {self.min_words}).")
 
@@ -62,6 +64,8 @@ class TranscriptAccumulator:
                     newly_completed_text += " "
                 newly_completed_text += segment_text
                 self.last_processed_end_time = end_time
+                self.buffer.append(segment_text)
+                self.sentence_count += 1
             elif not is_completed and segment_text:
                  # Log skipped non-completed segments if desired, but don't add to buffer
                  logging.debug(f"Accumulator: Skipping non-completed segment: '{segment_text[:50]}...'")
@@ -69,52 +73,40 @@ class TranscriptAccumulator:
         # Append the aggregated completed text to the buffer
         if newly_completed_text:
              if self.buffer and not newly_completed_text.startswith(' '):
-                 self.buffer += " "
-             self.buffer += newly_completed_text
-             logging.debug(f"Accumulator: Buffer updated with completed text. Current length: {len(self.buffer)}, Word count: {self._get_word_count(self.buffer)}")
+                 self.buffer.append(" ")
+             self.buffer.append(newly_completed_text)
+             logging.debug(f"Accumulator: Buffer updated with completed text. Current length: {len(self.buffer)} items, Word count: {self._get_word_count(' '.join(self.buffer))}")
         else:
             # No new completed segments were added
             return None
 
-        # --- Use NLTK for Sentence Tokenization on the updated buffer ---
-        try:
-            sentences = nltk.sent_tokenize(self.buffer)
-        except Exception as e:
-            logging.error(f"NLTK sent_tokenize failed: {e}. Buffer: '{self.buffer[:100]}...'", exc_info=True)
-            # Fallback or error handling needed? For now, just log and return None.
+        # --- Check if buffer should be processed ---
+        if self.sentence_count >= self.min_sentences or len(self.buffer) >= self.min_words: # Check both conditions
+            chunk_to_return = " ".join(self.buffer).strip()
+            self.buffer = [] # Clear buffer
+            self.sentence_count = 0 # Reset sentence count
+            return chunk_to_return
+        else:
+            # Not enough sentences/words yet
             return None
-        
-        num_sentences = len(sentences)
-        num_words = self._get_word_count(self.buffer) # Check words on the whole buffer for now
-
-        logging.debug(f"NLTK detected {num_sentences} sentences. Total words: {num_words}.")
-
-        # Check if buffer meets criteria for yielding a chunk
-        if num_sentences >= self.min_sentences and num_words >= self.min_words:
-            logging.debug(f"Accumulator: Met criteria ({num_sentences}/{self.min_sentences} sentences, {num_words}/{self.min_words} words). Creating chunk.")
-            # Take the required number of sentences
-            num_sentences_in_chunk = self.min_sentences # Take the minimum required number
-            chunk_sentences = sentences[:num_sentences_in_chunk]
-            chunk = " ".join(chunk_sentences)
-
-            # Update buffer with remaining sentences
-            remaining_sentences = sentences[num_sentences_in_chunk:]
-            self.buffer = " ".join(remaining_sentences).strip() # Join remaining and strip leading/trailing space
-
-            logging.debug(f"Accumulator: Yielding chunk ({num_sentences_in_chunk} sentences, {self._get_word_count(chunk)} words): '{chunk[:50]}...'")
-            logging.debug(f"Accumulator: Remaining buffer ({len(remaining_sentences)} sentences): '{self.buffer[:50]}...'")
-            return chunk
-
-        # Criteria not met, return None
-        return None
 
     def flush(self) -> Optional[str]:
         """Returns any remaining text in the buffer and clears it."""
-        remaining_text = self.buffer.strip()
-        self.buffer = ""
+        remaining_text = " ".join(self.buffer).strip()
+        self.buffer = [] # Clear buffer
         self.last_processed_end_time = 0.0 # Reset time tracker on flush
         if remaining_text:
             logging.info(f"Accumulator: Flushing remaining buffer ({self._get_word_count(remaining_text)} words): '{remaining_text[:50]}...'")
             return remaining_text
         logging.debug("Accumulator: Flush called, buffer was empty.")
         return None 
+
+    def flush_buffer(self) -> Optional[str]:
+        """Forces the accumulator to return its current buffer content and clears it."""
+        if not self.buffer:
+            return None
+        
+        chunk_to_return = " ".join(self.buffer).strip()
+        self.buffer = [] # Clear buffer
+        self.sentence_count = 0 # Reset sentence count
+        return chunk_to_return 

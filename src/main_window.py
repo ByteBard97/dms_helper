@@ -32,7 +32,7 @@ from whisper_live_client.client import TranscriptionClient
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
     QPushButton, QHBoxLayout, QLabel, QTextEdit, QSizePolicy, QCheckBox,
-    QSplitter # <<< Added QSplitter
+    QSplitter, QSpinBox # <<< Added QSpinBox
 )
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt, QUrl, QMetaObject, Q_ARG, pyqtSignal, QObject
@@ -161,9 +161,22 @@ class MainWindow(QMainWindow):
         self.append_second_button = QPushButton("Append Second Markdown")
         self.append_second_button.clicked.connect(self.append_second_markdown)
 
+        # --- Add Flush Accumulator Button ---
+        self.flush_button = QPushButton("Flush Accumulator")
+        # -----------------------------------
+
         self.user_speech_checkbox = QCheckBox("Show User Speech")
         self.user_speech_checkbox.setChecked(self.show_user_speech)
         self.user_speech_checkbox.stateChanged.connect(self.on_user_speech_checkbox_changed)
+
+        # --- Add SpinBox for min_sentences ---
+        self.min_sentences_label = QLabel("Min Sentences:")
+        self.min_sentences_spinbox = QSpinBox()
+        self.min_sentences_spinbox.setMinimum(1)
+        self.min_sentences_spinbox.setMaximum(10) # Or a higher reasonable value
+        # Initialize with the value from the accumulator instance
+        self.min_sentences_spinbox.setValue(self.accumulator.min_sentences) 
+        # ------------------------------------
 
         self.button_layout.addWidget(self.start_button)
         self.button_layout.addWidget(self.stop_button)
@@ -171,6 +184,10 @@ class MainWindow(QMainWindow):
         self.button_layout.addWidget(self.test_render_button)
         self.button_layout.addWidget(self.append_second_button)
         self.button_layout.addWidget(self.user_speech_checkbox)
+        # Add the new widgets to the layout
+        self.button_layout.addWidget(self.min_sentences_label)
+        self.button_layout.addWidget(self.min_sentences_spinbox)
+        self.button_layout.addWidget(self.flush_button) # Add flush button
         
         # Add button layout to main layout
         self.main_layout.addLayout(self.button_layout)
@@ -189,6 +206,10 @@ class MainWindow(QMainWindow):
         self.transcription_received.connect(self.handle_transcription_result)
         self.llm_response_received.connect(self.handle_llm_response) # Connect LLM signal
         self.intermediate_transcription_updated.connect(self.update_user_speech_pane) # <<< Connect new signal
+        # Connect spinbox signal
+        self.min_sentences_spinbox.valueChanged.connect(self.on_min_sentences_changed)
+        # Connect flush button signal
+        self.flush_button.clicked.connect(self.on_flush_accumulator_clicked)
         # ----------------------------------------------
 
         LogManager.get_app_logger().info("MainWindow initialization complete.") # Use LogManager
@@ -226,14 +247,15 @@ class MainWindow(QMainWindow):
             app_logger.warning("Warning: Using fallback gatekeeper prompt.")
 
         # Initialize Ollama Client
-        ollama_host = self.config.get("servers.ollama_host", "http://localhost:11434")
-        try:
-            self.ollama_client = ollama.Client(host=ollama_host)
-            self.ollama_client.list()
-            app_logger.info(f"Ollama client initialized and connection verified for host: {ollama_host}")
-        except Exception as e:
-            app_logger.error(f"Failed to initialize or connect to Ollama client at {ollama_host}: {e}")
-            self.ollama_client = None
+        # ollama_host = self.config.get("servers.ollama_host", "http://localhost:11434")
+        # try:
+        #     self.ollama_client = ollama.Client(host=ollama_host)
+        #     self.ollama_client.list() # Verify connection
+        #     app_logger.info(f"Ollama client initialized and connection verified for host: {ollama_host}")
+        # except Exception as e:
+        #     app_logger.error(f"Failed to initialize or connect to Ollama client at {ollama_host}: {e}")
+        #     self.ollama_client = None
+        self.ollama_client = None # Explicitly set to None since we are skipping init
 
         # --- Attempt to load previous session history --- 
         initial_history = []
@@ -416,24 +438,54 @@ Elara spots a patch of glowing fungi near the stream.
         self.append_markdown_output(second_markdown)
 
     def on_user_speech_checkbox_changed(self, state):
-        """Handles checkbox state change, saves it, and toggles pane visibility."""
-        self.show_user_speech = self.user_speech_checkbox.isChecked()
-        LogManager.get_app_logger().info(f"Show User Speech set to: {self.show_user_speech}") # Use LogManager
-        # Save the new state to config
-        self.config.set("ui_settings.show_user_speech", self.show_user_speech)
-        # --- Toggle visibility of the right pane --- 
-        self.user_speech_display.setVisible(self.show_user_speech)
-        # -------------------------------------------
+        """Handles the state change of the user speech checkbox."""
+        show = state == Qt.Checked
+        self.user_speech_display.setVisible(show)
+        # Update config and log
+        self.config.set("ui_settings.show_user_speech", show)
+        self.config.save()
+        LogManager.get_app_logger().info(f'\'Show User Speech\' set to {show}')
+
+    def on_min_sentences_changed(self, value: int):
+        """Handles changes to the min_sentences spinbox."""
+        if self.accumulator:
+            self.accumulator.min_sentences = value
+            LogManager.get_app_logger().info(f"TranscriptAccumulator min_sentences set to: {value}")
+        else:
+            LogManager.get_app_logger().warning("Attempted to set min_sentences, but accumulator is not initialized.")
+
+    def on_flush_accumulator_clicked(self):
+        """Handles the Flush Accumulator button click."""
+        app_logger = LogManager.get_app_logger()
+        app_logger.info("'Flush Accumulator' button clicked.")
+        if not self.accumulator:
+            app_logger.warning("Flush attempted, but accumulator is not initialized.")
+            return
+
+        flushed_text = self.accumulator.flush_buffer()
+
+        if flushed_text:
+            app_logger.info(f"Flushed text from accumulator (length: {len(flushed_text)}), adding to CHUNK queue: {flushed_text[:80]}...")
+            self.chunk_queue.put(flushed_text)
+            self._maybe_process_next_input() # Attempt to process immediately
+        else:
+            app_logger.info("Flush attempted, but accumulator buffer was empty.")
 
     def update_user_speech_pane(self, hypothesis_text: str):
-        """Sets the content of the right-hand pane showing settled + in-progress text."""
-        # Combine settled text with the current hypothesis, adding a separator
-        separator = "\n\n--- In Progress ---\n" if hypothesis_text else "" # Only show separator if there's hypothesis
-        display_text = self.settled_user_text + separator + hypothesis_text
+        """Updates the right pane with settled text (default color) and the current hypothesis (gray)."""
+        separator = "\n\n--- In Progress ---\n" if hypothesis_text else ""
+        # Construct HTML content with different colors
+        # Settled text uses default color, in-progress text is gray
+        # Replace newlines with <br> for HTML rendering
+        settled_html = self.settled_user_text.replace('\n', '<br>')
+        in_progress_html = f"{separator}{hypothesis_text}".replace('\n', '<br>')
         
-        # Use setPlainText to replace the entire content
-        self.user_speech_display.setPlainText(display_text)
-        # Scroll to the bottom to show the latest updates
+        # Combine into final HTML.
+        final_html = f"<span>{settled_html}</span><span style='color: gray;'>{in_progress_html}</span>"
+        
+        # Use setHtml instead of setPlainText
+        self.user_speech_display.setHtml(final_html)
+        
         self.user_speech_display.verticalScrollBar().setValue(
             self.user_speech_display.verticalScrollBar().maximum()
         )
@@ -493,7 +545,11 @@ Elara spots a patch of glowing fungi near the stream.
             
             # --- Append finalized chunk to settled text and update display --- 
             self.settled_user_text += chunk_to_process + "\n\n" # Add double newline for separation
-            self.user_speech_display.setPlainText(self.settled_user_text) # Update display immediately
+            # self.user_speech_display.setPlainText(self.settled_user_text) # Update display immediately - OLD
+            # Update display using HTML to maintain coloring consistency
+            # Replace newlines with <br> for HTML
+            settled_html_for_display = self.settled_user_text.replace('\n', '<br>')
+            self.user_speech_display.setHtml(f"<span>{settled_html_for_display}</span>") 
             # Ensure the latest settled text is visible
             self.user_speech_display.verticalScrollBar().setValue(
                  self.user_speech_display.verticalScrollBar().maximum()
@@ -585,8 +641,18 @@ Elara spots a patch of glowing fungi near the stream.
             self._maybe_process_next_input()
             return
         
+        # --- Log the text chunk and history state before sending --- 
+        LogManager.get_app_logger().info(f"Text chunk being sent to LLM: '{chunk_text}'")
+        try:
+            history_len = len(self.chat_session.history)
+            LogManager.get_app_logger().info(f"Current chat history length before sending: {history_len}")
+        except Exception as e:
+            LogManager.get_app_logger().warning(f"Could not determine chat history length: {e}")
+        # -----------------------------------------------------------
+
         # Format the prompt using the loaded template
         formatted_prompt = self.main_prompt_template.format(transcript_chunk=chunk_text)
+        LogManager.get_app_logger().debug(f"Formatted prompt for LLM: {formatted_prompt[:200]}...") # Log beginning of prompt
         LogManager.get_app_logger().info(f"Starting MAIN LLM worker thread...")  # Use LogManager
         
         def llm_worker_func(prompt_to_send):
