@@ -31,7 +31,8 @@ from whisper_live_client.client import TranscriptionClient
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
-    QPushButton, QHBoxLayout, QLabel, QTextEdit, QSizePolicy, QCheckBox
+    QPushButton, QHBoxLayout, QLabel, QTextEdit, QSizePolicy, QCheckBox,
+    QSplitter # <<< Added QSplitter
 )
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt, QUrl, QMetaObject, Q_ARG, pyqtSignal, QObject
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow):
     # Define custom signals
     transcription_received = pyqtSignal(list)
     llm_response_received = pyqtSignal(str) # Signal for LLM response
+    intermediate_transcription_updated = pyqtSignal(str) # <<< New signal for right pane updates
     
     def __init__(self):
         super().__init__()
@@ -55,8 +57,7 @@ class MainWindow(QMainWindow):
         self.config = ConfigManager() 
 
         self.setWindowTitle("D&D Helper Assistant")
-        # Set an initial size; can be adjusted later
-        self.setGeometry(100, 100, 800, 600)  
+        self.setGeometry(100, 100, 1000, 700) # Slightly wider default size for side-by-side
 
         # LLM, Gatekeeper, Accumulator and State Initialization
         self.chat_session = None
@@ -82,12 +83,17 @@ class MainWindow(QMainWindow):
         self.queue_monitor_stop_event = threading.Event()
         self.queue_monitor_thread = None
 
+        self.settled_user_text = "" # <<< Add state for settled text
+
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
 
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        # --- Output Display Area (Now QWebEngineView) ---
+        # --- Splitter for Side-by-Side View ---
+        self.splitter = QSplitter(Qt.Horizontal) # Horizontal splitter
+
+        # --- Left Pane: LLM Output Display (QWebEngineView) ---
         self.output_display = QWebEngineView()
         # self.output_display.setReadOnly(True) # Not applicable to QWebEngineView
         self.output_display.settings().setAttribute(
@@ -109,7 +115,7 @@ class MainWindow(QMainWindow):
 </head>
 <body>
     <h1>D&D Assistant Log</h1> 
-    <p>Suggestions will appear below...</p>
+    <p>LLM Suggestions will appear here...</p>
     <hr>
 </body>
 </html>
@@ -118,7 +124,27 @@ class MainWindow(QMainWindow):
         self.output_display.setHtml(self.initial_html_structure, baseUrl=QUrl("file:///"))
         # --------------------------------------------
         
-        self.main_layout.addWidget(self.output_display)
+        self.splitter.addWidget(self.output_display) # Add to splitter (left)
+
+        # --- Right Pane: User Speech Display (QTextEdit) ---
+        self.user_speech_display = QTextEdit()
+        self.user_speech_display.setReadOnly(True)
+        self.user_speech_display.setPlaceholderText("Transcribed user speech will appear here...")
+        # Optional: Set font size or style if desired
+        # font = self.user_speech_display.font()
+        # font.setPointSize(10) 
+        # self.user_speech_display.setFont(font)
+        self.splitter.addWidget(self.user_speech_display) # Add to splitter (right)
+
+        # --- Add Splitter to Main Layout ---
+        self.main_layout.addWidget(self.splitter) 
+
+        # --- Set initial visibility of right pane ---
+        self.user_speech_display.setVisible(self.show_user_speech)
+
+        # --- Set initial splitter sizes (e.g., 50/50 or adjust as needed) ---
+        # Provide large numbers; Qt will distribute proportionally
+        self.splitter.setSizes([500, 500]) 
 
         # --- Button Layout ---
         self.button_layout = QHBoxLayout() # Horizontal layout for buttons
@@ -162,6 +188,7 @@ class MainWindow(QMainWindow):
         # Connect the custom signal to the handler slot
         self.transcription_received.connect(self.handle_transcription_result)
         self.llm_response_received.connect(self.handle_llm_response) # Connect LLM signal
+        self.intermediate_transcription_updated.connect(self.update_user_speech_pane) # <<< Connect new signal
         # ----------------------------------------------
 
         LogManager.get_app_logger().info("MainWindow initialization complete.") # Use LogManager
@@ -389,38 +416,27 @@ Elara spots a patch of glowing fungi near the stream.
         self.append_markdown_output(second_markdown)
 
     def on_user_speech_checkbox_changed(self, state):
-        """Handles checkbox state change and saves it to config."""
+        """Handles checkbox state change, saves it, and toggles pane visibility."""
         self.show_user_speech = self.user_speech_checkbox.isChecked()
         LogManager.get_app_logger().info(f"Show User Speech set to: {self.show_user_speech}") # Use LogManager
         # Save the new state to config
         self.config.set("ui_settings.show_user_speech", self.show_user_speech)
+        # --- Toggle visibility of the right pane --- 
+        self.user_speech_display.setVisible(self.show_user_speech)
+        # -------------------------------------------
 
-    # Add the new method for appending user speech
-    def append_user_speech(self, user_text: str):
-        """Appends formatted user speech to the web view if the checkbox is checked."""
-        if not self.show_user_speech:
-            LogManager.get_app_logger().debug("Show User Speech is off, not appending user text.") # Use LogManager
-            return # Do nothing if checkbox is unchecked
-
-        # Format the user speech (e.g., in a <pre> tag or a styled div)
-        # Using a <pre> tag for simple, monospace, preformatted text
-        # Or use a div with a class for more styling control via CSS
-        # formatted_text = f'<div class="user-speech">{user_text}</div>'
-        formatted_text = f'<pre class="user-speech">USER: {user_text}</pre>'
+    def update_user_speech_pane(self, hypothesis_text: str):
+        """Sets the content of the right-hand pane showing settled + in-progress text."""
+        # Combine settled text with the current hypothesis, adding a separator
+        separator = "\n\n--- In Progress ---\n" if hypothesis_text else "" # Only show separator if there's hypothesis
+        display_text = self.settled_user_text + separator + hypothesis_text
         
-        safe_html_fragment = json.dumps(formatted_text)
-        
-        # --- Logic to append fragment to QWebEngineView --- 
-        script = f"""
-        var body = document.body;
-        var newContent = document.createElement('div'); 
-        newContent.innerHTML = {safe_html_fragment};
-        while (newContent.firstChild) {{
-            body.appendChild(newContent.firstChild);
-        }}
-        window.scrollTo(0, document.body.scrollHeight);
-        """
-        self.output_display.page().runJavaScript(script)
+        # Use setPlainText to replace the entire content
+        self.user_speech_display.setPlainText(display_text)
+        # Scroll to the bottom to show the latest updates
+        self.user_speech_display.verticalScrollBar().setValue(
+            self.user_speech_display.verticalScrollBar().maximum()
+        )
 
     # Placeholder methods for button actions
     # def start_listening(self):
@@ -433,27 +449,29 @@ Elara spots a patch of glowing fungi near the stream.
 
     # --- Handle Transcription Segments --- 
     def handle_transcription_result(self, segments: List[Dict[str, Any]]):
-        """Handles segments from signal: accumulates and queues chunks."""
+        """Handles segments: logs raw, emits intermediate, accumulates, queues final chunks.""" # Updated docstring
         app_logger = LogManager.get_app_logger()
         if not isinstance(segments, list):
              app_logger.warning(f"Warning: handle_transcription_result received non-list data: {type(segments)}")
              return
 
-        # --- Log the raw segments to the dedicated raw transcript log --- 
+        # --- Log the raw segments --- 
         raw_logger = LogManager.get_raw_transcript_logger()
         raw_logger.info(f"RAW: {segments}") 
-        # --------------------------------------------------------------
 
-        # Accumulate the segments to form chunks
+        # --- Emit Intermediate Hypothesis for Display --- 
+        current_hypothesis = " ".join(seg.get('text', '').strip() for seg in segments)
+        self.intermediate_transcription_updated.emit(current_hypothesis)
+        # -----------------------------------------------
+
+        # Accumulate the segments to form final chunks
         accumulated_chunk = self.accumulator.add_segments(segments)
 
-        # If a valid chunk is returned, add it to the CHUNK queue
+        # If a valid final chunk is returned, add it to the CHUNK queue for LLM processing
         if accumulated_chunk:
-            app_logger.info(f"Accumulator produced chunk, adding to CHUNK queue: {accumulated_chunk[:80]}...")
+            app_logger.info(f"Accumulator produced final chunk, adding to CHUNK queue: {accumulated_chunk[:80]}...")
             self.chunk_queue.put(accumulated_chunk)
-            # --- Trigger processing check now that a chunk is queued --- 
             self._maybe_process_next_input()
-            # ----------------------------------------------------------
     # --- End Transcription Handling --- 
 
     def _maybe_process_next_input(self):
@@ -470,15 +488,22 @@ Elara spots a patch of glowing fungi near the stream.
 
         # Get the chunk from the queue
         try:
-            chunk_to_process = self.chunk_queue.get_nowait() # Use get_nowait as we already checked empty
-            self.app_logger.info(f"Processing chunk from queue: {chunk_to_process[:80]}...")
-            # --- Display User Speech Chunk --- 
-            self.append_user_speech(chunk_to_process)
-            # ---------------------------------
+            chunk_to_process = self.chunk_queue.get_nowait() 
+            self.app_logger.info(f"Processing final chunk from queue: {chunk_to_process[:80]}...")
+            
+            # --- Append finalized chunk to settled text and update display --- 
+            self.settled_user_text += chunk_to_process + "\n\n" # Add double newline for separation
+            self.user_speech_display.setPlainText(self.settled_user_text) # Update display immediately
+            # Ensure the latest settled text is visible
+            self.user_speech_display.verticalScrollBar().setValue(
+                 self.user_speech_display.verticalScrollBar().maximum()
+            )
+            # --- Display is handled by intermediate signal now ---
+            # self.update_user_speech_pane(chunk_to_process) # <<< REMOVED PREVIOUSLY
+            # -------------------------------------------------
         except queue.Empty:
-            self.app_logger.debug("Chunk queue became empty unexpectedly.") # Should not happen often
+            self.app_logger.debug("Chunk queue became empty unexpectedly.") 
             return
-        # --------------------------------
 
         # --- Temporarily Bypass Gatekeeper --- 
         self.app_logger.info("Gatekeeper check is currently BYPASSED.")
@@ -519,17 +544,14 @@ Elara spots a patch of glowing fungi near the stream.
             self.app_logger.info("Proceeding to LLM (Gatekeeper Bypassed or Indicated Ready).") 
             # --- Log User Input before sending --- 
             try:
-                # Use the chunk_to_process from the queue
-                user_log_entry = {"role": "USER", "content": chunk_to_process}
+                user_log_entry = {"role": "USER", "content": chunk_to_process} # Log the finalized chunk
                 self.conv_logger.info(json.dumps(user_log_entry))
-                self.app_logger.info(f"Logged USER content (len: {len(chunk_to_process)}) to conversation log.")
+                self.app_logger.info(f"Logged final USER content (len: {len(chunk_to_process)}) to conversation log.") # Clarified log
             except Exception as log_e:
-                self.app_logger.error(f"Failed to log USER input to conversation log: {log_e}", exc_info=True)
+                self.app_logger.error(f"Failed to log final USER input to conversation log: {log_e}", exc_info=True)
             # -------------------------------------
-            # Use the chunk_to_process from the queue
+            # Trigger LLM with the finalized chunk
             self.trigger_llm_request(chunk_to_process) 
-            # No need to clear accumulator buffer here - chunk was removed from queue
-            # self.accumulator.buffer = "" # REMOVED
         else:
              # This branch should not be reached while gatekeeper is bypassed
             self.app_logger.info("Gatekeeper indicates chunk is NOT ready. Accumulating further.")
@@ -782,7 +804,7 @@ Elara spots a patch of glowing fungi near the stream.
             else:
                 LogManager.get_app_logger().info("Transcription thread joined.") # Use LogManager
         
-        if hasattr(self, 'queue_monitor_thread') and self.queue_monitor_thread.is_alive():
+        if self.queue_monitor_thread and self.queue_monitor_thread.is_alive():
             LogManager.get_app_logger().info("Waiting for queue monitor thread to join...") # Use LogManager
             self.queue_monitor_thread.join(timeout=1.0)
             if self.queue_monitor_thread.is_alive():
