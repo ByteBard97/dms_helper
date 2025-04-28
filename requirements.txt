@@ -25,6 +25,8 @@ ollama>=0.2.0 # For local gatekeeper model
 # GUI (Chosen library)
 PyQt6>=6.0.0
 Markdown>=3.0 # For converting Gemini Markdown response to HTML for GUI
+markdown
+PyQt6-WebEngine # Added for QWebEngineView
 
 # Other utilities
 # librosa>=0.10.0 # Less likely needed now
