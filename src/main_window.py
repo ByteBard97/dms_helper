@@ -32,7 +32,7 @@ from whisper_live_client.client import TranscriptionClient
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
     QPushButton, QHBoxLayout, QLabel, QTextEdit, QSizePolicy, QCheckBox,
-    QSplitter, QSpinBox # <<< Added QSpinBox
+    QSplitter, QSpinBox, QGridLayout, QComboBox # <<< Added QComboBox
 )
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt, QUrl, QMetaObject, Q_ARG, pyqtSignal, QObject
@@ -77,6 +77,16 @@ class MainWindow(QMainWindow):
         self.show_user_speech = self.config.get("ui_settings.show_user_speech", True)
         LogManager.get_app_logger().info(f"Initial 'Show User Speech' state: {self.show_user_speech}") # Use LogManager
         
+        # --- Add state for DM action parameters ---
+        self.pc_level = self.config.get("dm_actions.default_pc_level", 5) # Default level 5
+        self.action_quantity = self.config.get("dm_actions.default_quantity", 1) # Default quantity 1
+        LogManager.get_app_logger().info(f"Initial DM action params - Level: {self.pc_level}, Quantity: {self.action_quantity}")
+        # ------------------------------------------
+        # --- Add state for audio source selection ---
+        self.audio_input_source = self.config.get("audio_settings.input_source", "File") # Default to File
+        LogManager.get_app_logger().info(f"Initial audio input source: {self.audio_input_source}")
+        # -------------------------------------------
+
         # Transcription client and thread references
         self.transcription_client = None
         self.transcription_thread = None
@@ -147,7 +157,15 @@ class MainWindow(QMainWindow):
         self.splitter.setSizes([500, 500]) 
 
         # --- Button Layout ---
-        self.button_layout = QHBoxLayout() # Horizontal layout for buttons
+        self.top_button_layout = QHBoxLayout() # Renamed for clarity
+
+        # --- Audio Source Selection ---
+        self.audio_source_label = QLabel("Audio Source:")
+        self.audio_source_combobox = QComboBox()
+        self.audio_source_combobox.addItems(["File", "Microphone"])
+        self.audio_source_combobox.setCurrentText(self.audio_input_source)
+        self.audio_source_combobox.currentTextChanged.connect(self.on_audio_source_changed)
+        # ----------------------------
 
         # Placeholder buttons
         self.start_button = QPushButton("Start Listening")
@@ -178,19 +196,87 @@ class MainWindow(QMainWindow):
         self.min_sentences_spinbox.setValue(self.accumulator.min_sentences) 
         # ------------------------------------
 
-        self.button_layout.addWidget(self.start_button)
-        self.button_layout.addWidget(self.stop_button)
-        self.button_layout.addStretch() # Add spacer
-        self.button_layout.addWidget(self.test_render_button)
-        self.button_layout.addWidget(self.append_second_button)
-        self.button_layout.addWidget(self.user_speech_checkbox)
+        # Add widgets to the top button layout
+        self.top_button_layout.addWidget(self.audio_source_label)
+        self.top_button_layout.addWidget(self.audio_source_combobox)
+        self.top_button_layout.addWidget(self.start_button)
+        self.top_button_layout.addWidget(self.stop_button)
+        self.top_button_layout.addStretch() # Add spacer
+        self.top_button_layout.addWidget(self.test_render_button)
+        self.top_button_layout.addWidget(self.append_second_button)
+        self.top_button_layout.addWidget(self.user_speech_checkbox)
         # Add the new widgets to the layout
-        self.button_layout.addWidget(self.min_sentences_label)
-        self.button_layout.addWidget(self.min_sentences_spinbox)
-        self.button_layout.addWidget(self.flush_button) # Add flush button
+        self.top_button_layout.addWidget(self.min_sentences_label)
+        self.top_button_layout.addWidget(self.min_sentences_spinbox)
+        self.top_button_layout.addWidget(self.flush_button) # Add flush button
         
-        # Add button layout to main layout
-        self.main_layout.addLayout(self.button_layout)
+        # Add top button layout to main layout
+        self.main_layout.addLayout(self.top_button_layout) # Use renamed layout
+
+        # --- DM Action Layout (Grid) ---
+        self.dm_action_layout = QGridLayout()
+        
+        # -- Row 0: Parameters --
+        self.pc_level_label = QLabel("PC Level:")
+        self.pc_level_spinbox = QSpinBox()
+        self.pc_level_spinbox.setRange(1, 20)
+        self.pc_level_spinbox.setValue(self.pc_level)
+        self.pc_level_spinbox.valueChanged.connect(self.on_pc_level_changed)
+
+        self.action_quantity_label = QLabel("Quantity:")
+        self.action_quantity_spinbox = QSpinBox()
+        self.action_quantity_spinbox.setRange(1, 10) # Allow up to 10 items
+        self.action_quantity_spinbox.setValue(self.action_quantity)
+        self.action_quantity_spinbox.valueChanged.connect(self.on_action_quantity_changed)
+
+        self.dm_action_layout.addWidget(self.pc_level_label, 0, 0)
+        self.dm_action_layout.addWidget(self.pc_level_spinbox, 0, 1)
+        self.dm_action_layout.addWidget(self.action_quantity_label, 0, 2)
+        self.dm_action_layout.addWidget(self.action_quantity_spinbox, 0, 3)
+        self.dm_action_layout.setColumnStretch(4, 1) # Add stretch after params
+
+        # -- Row 1: Action Buttons --
+        self.generate_npc_button = QPushButton("Gen NPC")
+        self.generate_npc_button.setToolTip("Generate NPC(s) based on context")
+        self.generate_npc_button.clicked.connect(self.on_generate_npc_clicked)
+        
+        self.describe_surroundings_button = QPushButton("Describe Env")
+        self.describe_surroundings_button.setToolTip("Generate sensory details for the current location")
+        self.describe_surroundings_button.clicked.connect(self.on_describe_surroundings_clicked)
+
+        self.generate_encounter_button = QPushButton("Gen Encounter")
+        self.generate_encounter_button.setToolTip("Generate encounter ideas appropriate for PC level")
+        self.generate_encounter_button.clicked.connect(self.on_generate_encounter_clicked)
+        
+        self.suggest_rumor_button = QPushButton("Suggest Rumor")
+        self.suggest_rumor_button.setToolTip("Suggest plot hooks or rumors")
+        self.suggest_rumor_button.clicked.connect(self.on_suggest_rumor_clicked)
+
+        self.suggest_complication_button = QPushButton("Suggest Twist")
+        self.suggest_complication_button.setToolTip("Introduce a minor complication or twist")
+        self.suggest_complication_button.clicked.connect(self.on_suggest_complication_clicked)
+        
+        self.generate_mundane_items_button = QPushButton("Gen Mundane")
+        self.generate_mundane_items_button.setToolTip("Generate common items found in the location")
+        self.generate_mundane_items_button.clicked.connect(self.on_generate_mundane_items_clicked)
+        
+        self.generate_loot_button = QPushButton("Gen Loot")
+        self.generate_loot_button.setToolTip("Generate loot appropriate for PC level")
+        self.generate_loot_button.clicked.connect(self.on_generate_loot_clicked)
+
+        # Add buttons to the grid layout (row 1)
+        self.dm_action_layout.addWidget(self.generate_npc_button, 1, 0)
+        self.dm_action_layout.addWidget(self.describe_surroundings_button, 1, 1)
+        self.dm_action_layout.addWidget(self.generate_encounter_button, 1, 2)
+        self.dm_action_layout.addWidget(self.suggest_rumor_button, 1, 3)
+        self.dm_action_layout.addWidget(self.suggest_complication_button, 1, 4)
+        self.dm_action_layout.addWidget(self.generate_mundane_items_button, 1, 5)
+        self.dm_action_layout.addWidget(self.generate_loot_button, 1, 6)
+        self.dm_action_layout.setColumnStretch(7, 1) # Add stretch after buttons
+        # ---------------------------------
+        
+        # Add DM action layout to main layout
+        self.main_layout.addLayout(self.dm_action_layout)
 
         # Connect signals to slots (implement actual functions later)
         # self.start_button.clicked.connect(self.start_listening)
@@ -681,9 +767,9 @@ Elara spots a patch of glowing fungi near the stream.
         worker_thread.start()
 
     def start_audio_processing(self):
-        """Initializes and starts the transcription client and monitoring thread."""
+        """Initializes and starts the transcription client and monitoring thread based on selected source.""" # Updated docstring
         app_logger = LogManager.get_app_logger()
-        app_logger.info("Start Audio Processing button clicked.")
+        app_logger.info(f"Start Audio Processing button clicked. Selected source: {self.audio_input_source}")
         if self.transcription_thread and self.transcription_thread.is_alive():
             app_logger.warning("Transcription already running.")
             return
@@ -748,18 +834,30 @@ Elara spots a patch of glowing fungi near the stream.
             self.stop_button.setEnabled(False)
             return
 
-        # Start the client logic (audio playback/sending) in its thread
-        # --- Pass start_time to the client call --- 
-        app_logger.info(f"Starting transcription client thread for file: {input_audio_path} at {start_playback_time:.2f}s")
-        self.transcription_thread = threading.Thread(
-            target=self.transcription_client.__call__, # Target the __call__ method
-            kwargs={ # Pass arguments as kwargs
-                'audio': input_audio_path,
-                'start_time': start_playback_time
-            },
-            daemon=True
-        )
-        # -----------------------------------------
+        # --- Call transcription client based on selected source ---
+        if self.audio_input_source == "File":
+            app_logger.info(f"Starting transcription client thread for file: {input_audio_path} at {start_playback_time:.2f}s")
+            self.transcription_thread = threading.Thread(
+                target=self.transcription_client.__call__, # Target the __call__ method
+                kwargs={ # Pass arguments as kwargs
+                    'audio': input_audio_path,
+                    'start_time': start_playback_time
+                },
+                daemon=True
+            )
+        elif self.audio_input_source == "Microphone":
+             app_logger.info("Starting transcription client thread for microphone input.")
+             self.transcription_thread = threading.Thread(
+                target=self.transcription_client.__call__, # Target the __call__ method
+                # NO 'audio' kwarg means it will use record()
+                daemon=True
+             )
+        else:
+             app_logger.error(f"Invalid audio input source selected: {self.audio_input_source}")
+             self.start_button.setEnabled(True) # Re-enable start button on error
+             self.stop_button.setEnabled(False)
+             return # Don't proceed if source is invalid
+        # ----------------------------------------------------
         
         # Start monitor thread
         self.queue_monitor_stop_event = threading.Event()
@@ -903,6 +1001,98 @@ Elara spots a patch of glowing fungi near the stream.
         # Wait a short moment for threads to potentially finish stopping
         # time.sleep(0.5) 
         super().closeEvent(event) # Call the default handler
+
+    # --- DM Action Button Handlers (Placeholders) ---
+    def on_pc_level_changed(self, value: int):
+        self.pc_level = value
+        self.config.set("dm_actions.default_pc_level", value)
+        LogManager.get_app_logger().info(f"PC Level set to: {value}")
+
+    def on_action_quantity_changed(self, value: int):
+        self.action_quantity = value
+        self.config.set("dm_actions.default_quantity", value)
+        # --- Save config immediately on change (NO TRY BLOCK) --- 
+        self.config.save()
+        LogManager.get_app_logger().info(f"Action Quantity set to: {value} (saved)")
+        # ---------------------------------------------------------
+
+    def _trigger_dm_action(self, prompt_filename: str):
+        """Helper function to load, format, and trigger a DM action prompt."""
+        logger = LogManager.get_app_logger()
+        logger.info(f"Triggering DM action using prompt: {prompt_filename}")
+        
+        if self.is_llm_processing:
+            logger.warning("Cannot trigger DM action: LLM is already processing.")
+            # Optionally provide user feedback here (e.g., status bar message)
+            return
+        
+        project_root = Path(__file__).parent.parent
+        prompt_path = project_root / "prompts" / prompt_filename
+
+        if not prompt_path.is_file():
+            logger.error(f"DM action prompt file not found: {prompt_path}")
+            # Optionally provide user feedback
+            return
+            
+        # --- Read, Format, Log, Trigger (NO TRY BLOCK) ---
+        prompt_template = prompt_path.read_text(encoding="utf-8")
+        # Format the prompt using current level and quantity
+        formatted_prompt = prompt_template.format(
+            quantity=self.action_quantity, 
+            pc_level=self.pc_level
+        )
+        logger.debug(f"Formatted DM Action Prompt: {formatted_prompt[:150]}...")
+        # Log the user request for the DM action
+        # Log with explicit error check instead of try/except for JSON part - REMOVED
+        user_log_entry = {"role": "USER", "content": f"[DM Action Request: {prompt_filename}]\n{formatted_prompt}"}
+        log_line = json.dumps(user_log_entry)
+        self.conv_logger.info(log_line)
+        logger.info(f"Logged DM Action USER request to conversation log.")
+        # except Exception as log_e: # Keep minimal try/except ONLY for logging itself - REMOVED
+        #     logger.error(f"Failed to log DM Action USER input to conversation log: {log_e}", exc_info=True)
+
+        self.trigger_llm_request(formatted_prompt)
+        # ------------------------------------------------
+        
+    def on_generate_npc_clicked(self):
+        self._trigger_dm_action("dm_action_generate_npc.md")
+
+    def on_describe_surroundings_clicked(self):
+        self._trigger_dm_action("dm_action_describe_surroundings.md")
+
+    def on_generate_encounter_clicked(self):
+        self._trigger_dm_action("dm_action_generate_encounter.md")
+
+    def on_suggest_rumor_clicked(self):
+        self._trigger_dm_action("dm_action_suggest_rumor.md")
+
+    def on_suggest_complication_clicked(self):
+        self._trigger_dm_action("dm_action_suggest_complication.md")
+
+    def on_generate_mundane_items_clicked(self):
+        self._trigger_dm_action("dm_action_generate_mundane_items.md")
+
+    def on_generate_loot_clicked(self):
+        self._trigger_dm_action("dm_action_generate_loot.md")
+    # ---------------------------------------------------
+
+    # --- Handler for Audio Source Dropdown ---
+    def on_audio_source_changed(self, selected_source: str):
+        """Handles changes in the audio source dropdown."""
+        if selected_source != self.audio_input_source:
+            self.audio_input_source = selected_source
+            self.config.set("audio_settings.input_source", selected_source)
+            try:
+                self.config.save()
+                LogManager.get_app_logger().info(f"Audio input source changed to: {selected_source} (saved)")
+            except Exception as e:
+                LogManager.get_app_logger().error(f"Error saving config after audio source change: {e}", exc_info=True)
+            # Potentially disable/enable start button if needed, or update UI
+            # If switching FROM microphone while running, may need to stop first?
+            if self.transcription_thread and self.transcription_thread.is_alive():
+                 LogManager.get_app_logger().warning("Audio source changed while transcription is active. Stop/Start required to apply change.")
+                 # Consider adding user feedback like a status bar message
+    # -----------------------------------------
 
 # --- Main Execution --- 
 def main():

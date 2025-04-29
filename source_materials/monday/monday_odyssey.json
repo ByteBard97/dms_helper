@@ -1,0 +1,11 @@
+{
+  "description": "Ceres Group - Odyssey of the Dragonlords",
+  "preamble_file": "source_materials/preamble.md",
+  "pc_description_file": "source_materials/monday/PC_descriptions.txt",
+  "current_state_file": "source_materials/monday/monday_summary.md",
+  "adventure_files": [
+    "source_materials/Chapter_7_The_Nether_Sea.md",
+    "source_materials/Chapter_9_The_Battle_of_Mytros.md"
+  ],
+  "extra_lore_files": []
+} 

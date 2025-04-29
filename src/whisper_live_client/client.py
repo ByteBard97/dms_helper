@@ -330,29 +330,31 @@ class TranscriptionTeeClient:
         self.mute_audio_playback = mute_audio_playback
         self.frames = b""
         self.p = pyaudio.PyAudio()
+        
+        # --- Log Audio Devices --- 
+        logger = logging.getLogger(__name__) # Get logger for this module
+        logger.info("Available Audio Input Devices:")
+        default_device_info = None
+        try:
+            default_device_info = self.p.get_default_input_device_info()
+            logger.info(f"  Default Input Device: Name: '{default_device_info['name']}', Index: {default_device_info['index']}")
+        except IOError:
+             logger.warning("Could not query default input device.")
+        
+        try:
+            for i in range(self.p.get_device_count()):
+                info = self.p.get_device_info_by_index(i)
+                if info.get('maxInputChannels') > 0:
+                    logger.info(f"  Device {i}: Name: '{info.get('name')}', Channels: {info.get('maxInputChannels')}, Rate: {info.get('defaultSampleRate')}")
+        except Exception as e:
+             logger.error(f"Error enumerating audio devices: {e}")
+        # -------------------------
+        
         self.stream = None # Initialize stream as None
         # --- Added for playback position tracking ---
         self.current_playback_frame = 0
         self.current_frame_rate = None # Will be set when file is opened
         # -------------------------------------------
-        try:
-            # Attempt to open default input stream only if not playing file initially
-            # This might be needed for other modes, keep for now but be aware
-            self.stream = self.p.open(
-                format=self.format,
-                channels=self.channels,
-                rate=self.rate,
-                input=True,
-                frames_per_buffer=self.chunk,
-            )
-            # Immediately stop and close if only used for initialization check
-            if self.stream.is_active():
-                self.stream.stop_stream()
-            self.stream.close()
-            self.stream = None # Reset after check
-        except OSError as error:
-            print(f"[WARN]: Unable to access default microphone. {error}")
-            self.stream = None
 
     def __call__(self, audio=None, rtsp_url=None, hls_url=None, save_file=None, start_time=0.0):
         """
@@ -664,10 +666,28 @@ class TranscriptionTeeClient:
             if os.path.exists("chunks"):
                 shutil.rmtree("chunks")
             os.makedirs("chunks")
+
+        # --- Open stream specifically for recording --- 
+        self.stream = None # Ensure stream is None initially
         try:
+            self.stream = self.p.open(
+                format=self.format,
+                channels=self.channels,
+                rate=self.rate,
+                input=True,
+                frames_per_buffer=self.chunk,
+            )
+            logging.info("Microphone stream opened for recording.")
+            # ---------------------------------------------
+
             for _ in range(0, int(self.rate / self.chunk * self.record_seconds)):
                 if not any(client.recording for client in self.clients):
                     break
+                # --- Check if stream is valid before reading --- 
+                if not self.stream or not self.stream.is_active():
+                     logging.warning("Stream is not active or valid, stopping record loop.")
+                     break
+                # -----------------------------------------------
                 data = self.stream.read(self.chunk, exception_on_overflow=False)
                 self.frames += data
 
@@ -685,6 +705,21 @@ class TranscriptionTeeClient:
 
         except KeyboardInterrupt:
             self.finalize_recording(n_audio_file)
+        finally:
+            # --- Ensure stream is closed in finally block --- 
+            if self.stream:
+                if self.stream.is_active():
+                    self.stream.stop_stream()
+                self.stream.close()
+                logging.info("Microphone stream closed.")
+            self.p.terminate()
+            logging.info("PyAudio terminated.")
+            # Ensure clients are closed even on exception during recording
+            self.close_all_clients()
+            # Ensure sentinel is placed even on exception
+            for client in self.clients:
+                client._put_sentinel_on_queue()
+        # ------------------------------------------------
 
     def write_audio_frames_to_file(self, frames, file_name):
         """

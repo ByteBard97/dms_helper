@@ -1,11 +1,11 @@
 {
     "general": {
-        "llm_model_name": "gemini-1.5-flash",
+        "llm_model_name": "gemini-2.5-flash-preview-04-17",
         "gatekeeper_model": "mistral:latest",
         "mute_playback": false
     },
     "paths": {
-        "campaign_config": "source_materials/ceres_group/ceres_odyssey.json",
+        "campaign_config": "source_materials/monday/monday_odyssey.json",
         "input_audio": "source_materials/recording_of_dm_resampled.wav",
         "gatekeeper_prompt": "prompts/gatekeeper_prompt.md",
         "main_prompt": "prompts/dm_assistant_prompt.md",
@@ -24,6 +24,11 @@
         "last_audio_position_sec": 0.0
     },
     "audio_settings": {
-        "last_playback_position": 3923.456
+        "last_playback_position": 0.0,
+        "input_source": "Microphone"
+    },
+    "dm_actions": {
+        "default_pc_level": 20,
+        "default_quantity": 4
     }
 }

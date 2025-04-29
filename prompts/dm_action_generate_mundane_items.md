@@ -1,1 +1,3 @@
-Based on the context, suggest {quantity} common, mundane item(s) that the players might find in their current location or on a defeated foe. 
+Based on the context, suggest {quantity} common, mundane item(s) that the players might find in their current location or on a defeated foe.
+
+Format the response as a Markdown list. 

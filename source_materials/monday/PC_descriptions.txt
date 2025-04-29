@@ -1,0 +1,45 @@
+Okay, here are descriptions of the main characters based only on the provided OODL Quest Log:
+
+Player Characters (The Heroes):
+
+Alastor: A human sailor and rogue who wields a rapier. He was recruited by Kyrah in the Sour Vintage tavern. He swore an oath to return to the oracle Versi after she rescued him and seems to have a close connection with her; she later tasked him with finding a dragon egg. He took command of the ghost ship, the Ultros, after defeating the spirit of Estor Arkelander. He has a son, Alexander, apprenticing in Mytros, and a daughter, Naomi, who was captured by Gaius and later stabbed Alastor after being rescued. He is skilled in stealth, investigation, and uses thieves' cant. He is currently training the party's newly hatched bronze dragon, Doros, and attuned to Lutheria's dangerous crystal scythe.
+
+Raph: A fey creature resembling a bunny, skilled in magic. Recruited by Kyrah. He discovered King Pythor of Estoria might be his father and received a magical hammer from him. His spellbook was imbued with the spirit of Cerberus as a "gift" from Lutheria. His personal quest involved defeating the green dragon Hexia, who had captured his mother, Daphne. He made a secret deal with the Fates to learn Hexia's location. After Hexia's defeat, his mother was rescued. The party pooled resources to acquire a Staff of the Magi for him. He needs a Dispel Evil and Good spell cast on him for an unspecified reason (likely related to the Cerberus spirit or Fates deal).
+
+Xenophon: A bald, muscular human monk from the Aresian order, recognizable by his red cape. He wields a spear and shield. He delivered the killing blow to the giant boar in Session 1. His personal quest revolves around his lost wife, Lyra (the Forgotten Queen of Aresia), and retrieving artifacts of his order. He communicates with Lyra's spirit through family heirlooms (a ring, later a magical helmet called the Hat of Brilliance). He fought Demetria and later interrogated a Medusa queen on Themis who possessed his wife's helmet. He made a deal with the Fates, which made him more vulnerable in battle (dies on one failed death save). He bonded with the centaur leader Ness and often acts impulsively in combat, initiating the fight against Lutheria. His family's spirit is trapped within the crystal scythe Alastor now wields.
+
+Nakor: A middle-aged half-elf bard, characterized by bright blue clothing, musical instruments (including a magical Lute of the Bards), and a short bow. Recruited by Kyrah. He often acts as the party's face, performing music, gathering information, and using diplomacy (often involving giving oranges). He possesses healing magic (Staff of Healing) and various support/utility spells (Legend Lore, Control Weather, shapeshifting). He was briefly blinded by a prophetic dream. He explored the Fates' lair, trading his fertility for a Tome of Leadership and Influence (leaving one hag pregnant with his child). He maintains and repairs the party's ship, the Ultros. Damon, the Necropolis guardian, considered him a potential successor.
+
+Thanakos: A large human warrior with a blacksmith's build, wearing medium armor and wielding a large warhammer (later receiving a magical one from Pythor). He became more intelligent after donning a Headband of Intellect recovered from a troglodyte king. He experienced a vision where the Titan Sydon attacked him. His personal quest, given via a locket from Versi, involves killing his grandfather. He bravely faces danger but has died multiple times. He made a deal with the Fates for information, gaining disadvantage on fear-based saving throws. He landed the killing blows on the dragon Hexia and the Titan Lutheria.
+
+Key Non-Player Characters (NPCs):
+
+Kyrah: Initially the party's recruiter, later revealed to be the Goddess of Music. She acts as a guide, provides lore (often via constellation stories), possesses healing magic and scrolls, and sometimes aids the party directly in combat. She travels with the party frequently. She knew Damon the Lich and revealed Hexia was her adopted sister. Implied sister of Versi.
+
+Versi: An Oracle initially found trapped in a water elemental. She provided the party with their Epic Path quests and main goals (Forge, Weapons, Horn). She has a close, possibly romantic, connection with Alastor, to whom she gave a specific quest. She was kidnapped by the dragon Hexia from the Ultros but presumably rescued after Hexia's defeat. The Fates desired her death as part of a bargain. Implied sister of Kyrah.
+
+Sydon: The Titan Lord of the Sea, ruling Thylea with his sister-wife Lutheria. A primary antagonist. He demanded sacrifices, attacked Mytros with a storm, empowers minions (like Gaius and the Fire Walkers), and has confronted the party through visions (Thanakos) and his sons (Talius, Hergeron). His main base is called Praxis. Involved in the lore surrounding the First War and the Oath of Peace.
+
+Lutheria: The Titan Queen, sister-wife of Sydon. A primary antagonist associated with witchcraft, deception, and corruption. She made pacts with evil beings (Demetria), cursed locations (Mithril Mines), corrupted the Amazons, and sends nightmares. She cheated in the game that established the Oath of Peace. Has a lair on a barge in the Nether Sea, wields powerful crystal weapons (like the scythe Alastor has), and commands various minions, including Erinyes. She imprisoned powerful creatures (Terrasque, Red Dragon, Lost God). Defeated by the party on her barge, but she vanished rather than died. Appears to have friction with Sydon's followers.
+
+Pythor: King of Estoria and a (minor/faded) god. He is Raph's potential father. He struggled with Sydon's demand for his daughter Anora's sacrifice. Often drunk, lamenting past glory and lovers killed by Hexia. Gave Raph a magical hammer. Traveled with the party to face Hexia.
+
+King Acastus: King of Mytros, descendant of the problematic Arkelander line. He aims to revive the Dragonlords but uses aging potions on his dragons. Met the party after they dealt with Sydon's storm, provided the map to the Ultros, but tries to claim their successes. Has a silver dragon named Icarus.
+
+Gaius: Commander of the Order of Sydon (blue cloaks). Negotiated sacrifices in Estoria. Stole a vital gear from the Antikythera navigation device and fled to Yonder. Considered a traitor by Goddess Valis. Captured Alastor's daughter, Naomi, using her as a hostage.
+
+Damon: The ancient Lich guardian of the Necropolis of Telamok. Initially an obstacle, he later provided lore and considered Nakor as a potential successor to his guardianship.
+
+Lyra (Xenophon's Wife / Forgotten Queen): Her spirit communicates with Xenophon through magical items (ring, helmet) guiding his quest. Revealed to be the Forgotten Queen of Aresia, her essence (and possibly others from her family/court) is trapped within the crystal scythe Lutheria wielded, now held by Alastor.
+
+Naomi: Alastor's daughter. She was captured by Gaius and used as a hostage. After being rescued, she stabbed her father Alastor due to apparent mental trauma/manipulation, but was later healed via magic (Greater Restoration). She provided intelligence about Gaius and Lutheria's acolytes.
+
+The Fates: Three ancient Hags dwelling in a cave. They offer powerful information and boons but demand steep personal sacrifices (like Xenophon's vitality, Thanakos's courage, Nakor's fertility).
+
+Lotus Witch: An ancient Sphinx dwelling in a time-distorted tower on Scorpion Island. She cursed the centaurs long ago. She trades knowledge for correctly answered riddles and provided the party with key locations (Yonder, Fates' island).
+
+Time Sphinx: A powerful, seemingly benevolent celestial Sphinx residing on the Island of Time. He opposes the Titans and offered the party trials and access to a time chamber for intensive training. Revealed Acastus's secret about aging dragons.
+
+Hexia: A powerful ancient Green Dragon dwelling on the Island of the Dragon. She captured Raph's mother, Daphne, and later kidnapped Versi. She commanded plants and animals and was Kyrah's adopted sister. Defeated by the party, leading to the rescue of Daphne and Versi.
+
+Helios: The God of the Sun, residing in the Garden of Helios. He appeared as a mighty man but revealed himself to be a Gold Dragon bound by an oath to Sydon to kill the heroes. Attacked the party and was defeated.
