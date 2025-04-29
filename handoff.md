@@ -4,6 +4,54 @@
 
 ---
 
+**Date:** 2025-04-28 (Second Handoff of Session)
+
+**Recent Activity (Since Last Handoff):**
+
+1.  **DM Quick Actions UI & Logic:**
+    *   Added a `QGridLayout` to `MainWindow` containing labels, spinboxes (PC Level, Quantity), and buttons (Gen NPC, Describe Env, etc.).
+    *   Implemented handlers to save Level/Quantity to `config.json`.
+    *   Created 7 prompt template files (`prompts/dm_action_*.md`).
+    *   Implemented `_trigger_dm_action` helper and button handlers to load/format/send prompts to LLM.
+    *   Updated prompts to request Markdown formatting.
+2.  **Microphone Input Integration:**
+    *   Added `QComboBox` to select audio source (File/Microphone), saving choice to `config.json`.
+    *   Updated `start_audio_processing` to check selected source and call appropriate client method (`play_file` or `record`).
+    *   Fixed `AttributeError` in `client.py` by properly opening/closing the PyAudio stream within the `record()` method.
+    *   Added logging to show available audio devices on startup.
+3.  **Configuration & Model:**
+    *   Added `dm_actions` and `audio_settings.input_source` sections to `config.json`.
+    *   Updated `llm_model_name` in `config.json` to `gemini-2.5-flash-preview-04-17`.
+4.  **Code Quality/Rules:**
+    *   Removed disallowed `try...except` blocks from prompt loading/formatting and config saving in `MainWindow`.
+5.  **Documentation & Tooling:**
+    *   Created `start_whisper_server.bat`.
+    *   Created `docs/project_overview.md` summarizing current architecture and features.
+    *   Updated Taskmaster statuses (Tasks #3, #7, #21 set to `done`).
+
+**Current Status:**
+
+*   Application runs with either file or microphone input selectable via dropdown.
+*   Microphone input connects to the server and initiates transcription.
+*   DM Quick Action buttons are implemented and trigger LLM requests with formatted prompts.
+*   User speech pane shows color distinction for settled vs. in-progress text and preserves paragraph breaks.
+*   LLM responses are rendered as Markdown in the main display.
+*   Taskmaster statuses are updated to reflect recent completions.
+
+**Next Steps (Agreed):**
+
+1.  **Implement Direct LLM Input UI & Logic (Task #6):**
+    *   Add `QTextEdit` (multi-line) and `QPushButton` (Send) below the right-hand user speech pane.
+    *   Implement `Enter` (send) / `Shift+Enter` (newline) behavior.
+    *   Implement button state/text changes (SEND/BUSY, enabled/disabled) based on `is_llm_processing` flag.
+    *   Implement logic to send text using a specific new prompt (details in Task #22).
+2.  **Define and Integrate Markdown Styling Prompt (Task #22):**
+    *   Create `prompts/markdown_styling_guide.md` detailing desired CSS classes (`.stat-block`, `.read-aloud`, etc.) and standard Markdown usage.
+    *   Modify LLM trigger points (`trigger_llm_request`, `_trigger_dm_action`) to append this guide to outgoing prompts.
+    *   Add corresponding CSS rules to `css/dnd_style.css`.
+
+---
+
 **Date:** 2025-04-28 (End of Session)
 
 **Recent Activity (This Session):**

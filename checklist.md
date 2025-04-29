@@ -49,7 +49,7 @@
   - [x] Adjust transcript accumulation and prompting strategies based on results. *(Basic gatekeeper prompt tested, further refinement possible)*
 
 - [ ] ***Future Enhancements (Phase 4+):***
-  - [ ] Add live microphone input as an alternative mode.
+  - [x] Add live microphone input as an alternative mode. *(Implemented via dropdown)*
   - [ ] **Develop a native GUI (Next Step):**
     - [x] Choose library: **PyQt5** (Used PyQt5 instead of 6).
     - [x] Set up basic window structure.
@@ -64,9 +64,9 @@
   - [ ] Add selective transcription controls for live mode (Push-to-talk, Wake Word).
   - [ ] Allow manual text input for direct LLM queries/commands.
   - [ ] Enhance console output rendering (e.g., better Markdown display).
-  - [ ] Implement suggestion management features (copy, save, rate).
+  - [x] Implement suggestion management features (copy, save, rate). *(Added DM Quick Actions)*
   - [ ] Explore dynamic prompting based on transcript content/intent.
-  - [ ] Improve handling of `ASSISTANT_NEEDS_MORE_CONTEXT` responses.
+  - [x] Improve handling of `ASSISTANT_NEEDS_MORE_CONTEXT` responses. *(Colorized user text)*
   - [ ] Allow follow-up questions based on LLM responses.
   - [ ] Add commands for in-session context updates.
   - [ ] Investigate speaker diarization.
