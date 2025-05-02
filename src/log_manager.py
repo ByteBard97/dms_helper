@@ -115,7 +115,7 @@ class LogManager:
             # --- Configure App Logger (File path is now inside ./logs/) ---
             sys.stderr.write("LogManager: Configuring App Logger...\n")
             sys.stderr.flush()
-            app_logger.setLevel(logging.INFO)
+            app_logger.setLevel(logging.DEBUG)
             app_formatter = logging.Formatter(
                 '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
             )
@@ -125,8 +125,8 @@ class LogManager:
             app_console_handler = logging.StreamHandler(sys.stderr)
             app_console_handler.setFormatter(app_formatter)
             app_logger.addHandler(app_console_handler)
-            app_logger.propagate = False 
-            sys.stderr.write("LogManager: App Logger configured with handlers (INFO level) and propagate=False.\n")
+            app_logger.propagate = False
+            sys.stderr.write("LogManager: App Logger configured with handlers (DEBUG level) and propagate=False.\n")
             sys.stderr.flush()
 
             # --- Configure Conversation Logger (File path is now inside ./logs/) ---

@@ -188,3 +188,5 @@ node_modules/
 # Task files
 tasks.json
 tasks/ 
+source_materials/*.md
+source_materials/*.pdf

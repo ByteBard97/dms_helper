@@ -104,6 +104,10 @@ class Client:
         self.transcript = []
         print("[INFO]: * recording")
 
+        # --- Add Logger Initialization to Client class ---
+        self.logger = logging.getLogger("dms_helper")
+        # ----------------------------------------------
+
     def handle_status_messages(self, message_data):
         """Handles server status messages."""
         status = message_data["status"]
@@ -135,6 +139,9 @@ class Client:
 
         # Put the latest segment list onto the output queue if it exists
         if self.output_queue and segments:
+            # --- Add Debug Log ---
+            self.logger.debug(f"[DEBUG] process_segments: Putting {len(segments)} segments onto output_queue.")
+            # ---------------------
             # Send the full segment list for potential context/reconstruction
             # The receiver (accumulator) will need to handle this list
             # and figure out which parts are new/completed.
@@ -160,37 +167,45 @@ class Client:
             message (str): The received message from the server.
 
         """
-        message = json.loads(message)
+        # Don't log raw message here, can be very large
+        # self.logger.debug(f"[DEBUG] Client.on_message received raw: {message[:200]}...")
+        # No try/except per rules
+        message_data = json.loads(message)
+        # --- Add Debug Log after parse ---
+        self.logger.debug(f"[DEBUG] Client.on_message parsed data: {message_data}")
+        # --------------------------------
 
-        if self.uid != message.get("uid"):
-            print("[ERROR]: invalid client uid")
+        if self.uid != message_data.get("uid"):
+            self.logger.error(f"[ERROR]: invalid client uid received: {message_data.get('uid')} vs expected {self.uid}")
             return
 
-        if "status" in message.keys():
-            self.handle_status_messages(message)
+        # self.logger.debug(f"[DEBUG] Client.on_message checking keys: {list(message_data.keys())}")
+
+        if "status" in message_data.keys():
+            self.handle_status_messages(message_data)
             return
 
-        if "message" in message.keys() and message["message"] == "DISCONNECT":
+        if "message" in message_data.keys() and message_data["message"] == "DISCONNECT":
             print("[INFO]: Server disconnected due to overtime.")
             self.recording = False
 
-        if "message" in message.keys() and message["message"] == "SERVER_READY":
+        if "message" in message_data.keys() and message_data["message"] == "SERVER_READY":
             self.last_response_received = time.time()
             self.recording = True
-            self.server_backend = message["backend"]
+            self.server_backend = message_data["backend"]
             print(f"[INFO]: Server Running with backend {self.server_backend}")
             return
 
-        if "language" in message.keys():
-            self.language = message.get("language")
-            lang_prob = message.get("language_prob")
+        if "language" in message_data.keys():
+            self.language = message_data.get("language")
+            lang_prob = message_data.get("language_prob")
             print(
                 f"[INFO]: Server detected language {self.language} with probability {lang_prob}"
             )
             return
 
-        if "segments" in message.keys():
-            self.process_segments(message["segments"])
+        if "segments" in message_data.keys():
+            self.process_segments(message_data["segments"])
 
     def on_error(self, ws, error):
         print(f"[ERROR] WebSocket Error: {error}")
