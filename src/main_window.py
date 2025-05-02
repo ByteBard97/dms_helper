@@ -275,89 +275,22 @@ class MainWindow(QMainWindow):
         self.suggest_complication_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_suggest_complication.md"))
         self.generate_mundane_items_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_mundane_items.md"))
         self.generate_loot_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_loot.md"))
-        # --- Test button now injects sample markdown ---
-        # Updated sample markdown to include custom CSS classes
-        # Using a more detailed Bugbear example
-        sample_markdown = """<div class="statblock5e-bar"></div>
-<div class="statblock5e-content">
-  <div class="statblock5e-creature-heading">
-    <h1>Bugbear</h1>
-    <h2>Medium humanoid (goblinoid), chaotic evil</h2>
-  </div>
-
-  <div class="statblock5e-top-stats">
-    <div class="statblock5e-property-line">
-      <h4>Armor Class</h4>
-      <p>16 (hide armor, shield)</p>
-    </div>
-    <div class="statblock5e-property-line">
-      <h4>Hit Points</h4>
-      <p>27 (5d8 + 5)</p>
-    </div>
-    <div class="statblock5e-property-line">
-      <h4>Speed</h4>
-      <p>30 ft.</p>
-    </div>
-
-    <div class="statblock5e-abilities-table">
-      <table>
-        <tr><th>STR</th><th>DEX</th><th>CON</th><th>INT</th><th>WIS</th><th>CHA</th></tr>
-        <!-- Example scores/modifiers - LLM should calculate real ones -->
-        <tr><td>15 (+2)</td><td>14 (+2)</td><td>13 (+1)</td><td>8 (-1)</td><td>11 (+0)</td><td>9 (-1)</td></tr>
-      </table>
-    </div>
-
-    <div class="statblock5e-property-line">
-      <h4>Skills</h4>
-      <p>Stealth +6, Survival +2</p> <!-- Added Skills -->
-    </div>
-    <!-- Saving Throws could be added similarly if needed:
-    <div class="statblock5e-property-line">
-      <h4>Saving Throws</h4>
-      <p>Str +4, Dex +4</p>
-    </div>
-    -->
-    <div class="statblock5e-property-line">
-      <h4>Senses</h4>
-      <p>Darkvision 60 ft., passive Perception 10</p>
-    </div>
-    <div class="statblock5e-property-line">
-      <h4>Languages</h4>
-      <p>Common, Goblin</p>
-    </div>
-    <div class="statblock5e-property-line">
-      <h4>Challenge</h4>
-      <p>1 (200 XP)</p>
-    </div>
-  </div> <!-- End top-stats -->
-
-  <div class="statblock5e-property-block">
-    <h4>Brute.</h4>
-    <p>A melee weapon deals one extra die of its damage when the bugbear hits with it (included in the attack).</p>
-  </div>
-  <div class="statblock5e-property-block">
-    <h4>Surprise Attack.</h4>
-    <p>If the bugbear surprises a creature and hits it with an attack during the first round of combat, the target takes an extra 7 (2d6) damage from the attack.</p>
-  </div>
-
-  <h3>Actions</h3>
-  <div class="statblock5e-property-block">
-      <h4>Morningstar.</h4>
-      <p><i>Melee Weapon Attack:</i> +4 to hit, reach 5 ft., one target. <i>Hit:</i> 11 (2d8 + 2) piercing damage.</p>
-  </div>
-  <div class="statblock5e-property-block">
-      <h4>Javelin.</h4>
-      <p><i>Melee or Ranged Weapon Attack:</i> +4 to hit, reach 5 ft. or range 30/120 ft., one target. <i>Hit:</i> 9 (2d6 + 2) piercing damage in melee or 5 (1d6 + 2) piercing damage at range.</p>
-  </div>
-
-</div> <!-- End content -->
-<div class="statblock5e-bar"></div>
-
-<hr> <!-- Standard HR outside the block for comparison -->
-
-<p>This paragraph follows the detailed stat block.</p>"""
-        self.test_button.clicked.connect(lambda: self.handle_llm_response(sample_markdown))
-        # -------------------------------------------
+        
+        # --- Test button now loads and injects sample markdown/HTML ---
+        test_md_file_path = Path("prompts/test_statblock_markdown.md")
+        test_markdown_content = ""
+        if test_md_file_path.is_file():
+            test_markdown_content = test_md_file_path.read_text(encoding="utf-8")
+            self.test_button.clicked.connect(lambda: self.handle_llm_response(test_markdown_content))
+        else:
+            error_msg = f"Test markdown file not found: {test_md_file_path}"
+            self.app_logger.error(error_msg)
+            # Disable button or connect to error display if file missing
+            self.test_button.setToolTip(error_msg)
+            self.test_button.setEnabled(False) # Disable if file missing
+            # Alternative: connect to a lambda that shows the error
+            # self.test_button.clicked.connect(lambda: self._show_error_message(error_msg))
+        # ------------------------------------------------------------
 
     def _on_transcription_started(self):
         """Updates UI when transcription starts."""
