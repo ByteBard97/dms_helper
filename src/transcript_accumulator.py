@@ -64,20 +64,29 @@ class TranscriptAccumulator:
                     newly_completed_text += " "
                 newly_completed_text += segment_text
                 self.last_processed_end_time = end_time
-                self.buffer.append(segment_text)
+                # Sentence count still updated here, but defer the actual
+                # buffer append until *after* the loop to ensure we do not
+                # add the same text twice (which was causing duplicates).
                 self.sentence_count += 1
             elif not is_completed and segment_text:
                  # Log skipped non-completed segments if desired, but don't add to buffer
                  logging.debug(f"Accumulator: Skipping non-completed segment: '{segment_text[:50]}...'")
 
-        # Append the aggregated completed text to the buffer
+        # Append the aggregated completed text *once* to the buffer (now that
+        # we have finished scanning segments).  This prevents the same text
+        # from being added twice – previously we appended inside the loop *and*
+        # here, which caused duplicate sentences in the UI.
         if newly_completed_text:
-             if self.buffer and not newly_completed_text.startswith(' '):
-                 self.buffer.append(" ")
-             self.buffer.append(newly_completed_text)
-             logging.debug(f"Accumulator: Buffer updated with completed text. Current length: {len(self.buffer)} items, Word count: {self._get_word_count(' '.join(self.buffer))}")
+            if self.buffer and not str(self.buffer[-1]).endswith(" "):
+                self.buffer.append(" ")
+            self.buffer.append(newly_completed_text)
+            logging.debug(
+                "Accumulator: Buffer updated with completed text. Current length: %d items, Word count: %d",
+                len(self.buffer),
+                self._get_word_count(' '.join(self.buffer))
+            )
         else:
-            # No new completed segments were added
+            # No new completed segments were added in this call.
             return None
 
         # --- Check if buffer should be processed ---

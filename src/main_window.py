@@ -9,7 +9,7 @@ from pathlib import Path
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout,
     QPushButton, QHBoxLayout, QLabel, QTextEdit, QSizePolicy, QCheckBox,
-    QSplitter, QSpinBox, QGridLayout, QComboBox, QMessageBox # Added QMessageBox for potential error handling
+    QSplitter, QSpinBox, QComboBox, QMessageBox, QGridLayout # Added QMessageBox for potential error handling and QGridLayout for DM action buttons
 )
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt, QUrl, pyqtSignal
@@ -22,6 +22,9 @@ from audio_controller import AudioController
 from transcription_controller import TranscriptionController
 from llm_controller import LLMController
 from markdown_utils import markdown_to_html_fragment
+
+# Custom widget grouping DM action controls
+# from dm_action_panel import DMActionPanel
 
 class MainWindow(QMainWindow):
     """
@@ -51,24 +54,21 @@ class MainWindow(QMainWindow):
 
         # --- UI Setup (Adapted from main_window_original.py) ---
         self.setWindowTitle("D&D Helper Assistant - Refactored")
-        self.setGeometry(100, 100, 1000, 700)
+        self.setGeometry(100, 100, 1000, 700) # Adjusted default size
 
         # Use camelCase for PyQt built-in attributes/methods
         self.centralWidget_ = QWidget() # Note the underscore to avoid potential conflicts if needed, though unlikely here
         self.setCentralWidget(self.centralWidget_)
-        self.main_layout = QVBoxLayout(self.centralWidget_)
+        self.main_layout = QVBoxLayout(self.centralWidget_) # Main layout is Vertical
 
-        # Splitter - CREATE FIRST
+        # --- Top Section: Splitter for Output and User Speech ---
         self.splitter = QSplitter(Qt.Horizontal)
 
-        # Left Pane: LLM Output (Web View)
+        # ----- Left Pane: LLM Output (Web View) -----
         self.output_display = QWebEngineView()
-        # Correct way to access settings and attributes
-        settings = self.output_display.settings() # Get settings instance
+        settings = self.output_display.settings()
         settings.setAttribute(settings.WebAttribute.WebGLEnabled, False)
         settings.setAttribute(settings.WebAttribute.PluginsEnabled, False)
-
-        # --- Revert to original initial HTML structure and baseUrl --- 
         initial_html_structure = """
 <!DOCTYPE html>
 <html>
@@ -83,125 +83,123 @@ class MainWindow(QMainWindow):
 </body>
 </html>
 """
-        # Use original baseUrl approach - assumes execution from project root
         self.output_display.setHtml(initial_html_structure, baseUrl=QUrl("file:///"))
-        # -------------------------------------------------------------
-
         self.splitter.addWidget(self.output_display)
 
-        # Right Pane: User Speech (Text Edit)
+        # ----- Right Pane: User Speech (Text Edit) -----
         self.user_speech_display = QTextEdit()
         self.user_speech_display.setReadOnly(True)
         self.user_speech_display.setPlaceholderText("Transcribed user speech will appear here...")
-        self.splitter.addWidget(self.user_speech_display)
-
-        # --- Add Splitter to Main Layout ---
-        self.main_layout.addWidget(self.splitter)
-
-        # Load initial visibility state from config
+        # Set visibility based on initial config
         self.show_user_speech_state = self.config.get("ui_settings.show_user_speech", True)
         self.user_speech_display.setVisible(self.show_user_speech_state)
-        # --- Set initial splitter sizes AFTER splitter and its widgets are added ---
-        self.splitter.setSizes([500, 500]) # Initial sizes
+        self.splitter.addWidget(self.user_speech_display)
 
-        # --- Top Button Layout ---
-        self.top_button_layout = QHBoxLayout()
+        # Configure splitter sizes (optional, adjust as needed)
+        self.splitter.setSizes([600, 400]) # Example: 60% left, 40% right
 
-        # --- Add Audio Source Widgets Back ---
+        # Add Splitter to Main Layout - it will take most space
+        self.main_layout.addWidget(self.splitter, 1) # Add with stretch factor 1
+
+
+        # --- Bottom Section: Control Area ---
+        self.controls_widget = QWidget()
+        self.controls_layout = QHBoxLayout(self.controls_widget) # Horizontal layout for left/right controls
+        self.controls_layout.setContentsMargins(6, 6, 6, 6) # Add some padding
+
+        # -- Left Controls --
+        self.left_controls_layout = QVBoxLayout() # Vertical stacking for left controls
+
+        # Audio Source Row
+        audio_row_layout = QHBoxLayout()
         self.audio_source_label = QLabel("Audio Source:")
         self.audio_source_combobox = QComboBox()
         self.audio_source_combobox.addItems(["File", "Microphone"])
-        # Set initial value from AudioController state
         self.audio_source_combobox.setCurrentText(self.audio_controller.current_source)
-        # -------------------------------------
-
-        # --- Add Start/Stop Buttons Back ---
         self.start_button = QPushButton("Start Listening")
         self.stop_button = QPushButton("Stop Listening")
         self.stop_button.setEnabled(False) # Initially disabled
-        # ---------------------------------
+        audio_row_layout.addWidget(self.audio_source_label)
+        audio_row_layout.addWidget(self.audio_source_combobox)
+        audio_row_layout.addWidget(self.start_button)
+        audio_row_layout.addWidget(self.stop_button)
+        audio_row_layout.addStretch(1)
+        self.left_controls_layout.addLayout(audio_row_layout)
 
-        # Show User Speech Checkbox (already exists)
+        # Transcription Settings Row
+        transcription_settings_row_layout = QHBoxLayout()
         self.user_speech_checkbox = QCheckBox("Show User Speech")
         self.user_speech_checkbox.setChecked(self.show_user_speech_state)
-
-        # --- Add Min Sentences Spinbox back ---
         self.min_sentences_label = QLabel("Min Sentences:")
         self.min_sentences_spinbox = QSpinBox()
         self.min_sentences_spinbox.setMinimum(1)
         self.min_sentences_spinbox.setMaximum(10)
-        # Set initial value from TranscriptionController's accumulator
         self.min_sentences_spinbox.setValue(self.transcription_controller.accumulator.min_sentences)
-        # --------------------------------------
-
-        # Flush Button
         self.flush_button = QPushButton("Flush Accumulator")
+        transcription_settings_row_layout.addWidget(self.user_speech_checkbox)
+        transcription_settings_row_layout.addWidget(self.min_sentences_label)
+        transcription_settings_row_layout.addWidget(self.min_sentences_spinbox)
+        transcription_settings_row_layout.addWidget(self.flush_button)
+        transcription_settings_row_layout.addStretch(1)
+        self.left_controls_layout.addLayout(transcription_settings_row_layout)
 
-        # --- Add widgets to top layout in CORRECT order ---
-        self.top_button_layout.addWidget(self.audio_source_label)
-        self.top_button_layout.addWidget(self.audio_source_combobox)
-        self.top_button_layout.addWidget(self.start_button)
-        self.top_button_layout.addWidget(self.stop_button)
-        self.top_button_layout.addStretch() # Spacer
-        self.top_button_layout.addWidget(self.user_speech_checkbox)
-        self.top_button_layout.addWidget(self.min_sentences_label)
-        self.top_button_layout.addWidget(self.min_sentences_spinbox)
-        self.top_button_layout.addWidget(self.flush_button)
-        # -----------------------------------------------------
-
-        # --- Add top button layout to main layout AFTER it's populated ---
-        self.main_layout.addLayout(self.top_button_layout)
-        # --------------------------------------------------
-
-        # --- DM Action Layout ---
-        self.dm_action_layout = QGridLayout()
-
-        # --- Parameters - CREATE FIRST ---
+        # LLM Parameter Row (PC Level, Quantity)
+        llm_param_row_layout = QHBoxLayout()
         self.pc_level_label = QLabel("PC Level:")
         self.pc_level_spinbox = QSpinBox()
-        self.pc_level_spinbox.setRange(1, 20)
-        # Set initial value from LLMController state
+        self.pc_level_spinbox.setMinimum(1)
+        self.pc_level_spinbox.setMaximum(20)
         self.pc_level_spinbox.setValue(self.llm_controller.pc_level)
+        self.quantity_label = QLabel("Quantity:")
+        self.quantity_spinbox = QSpinBox()
+        self.quantity_spinbox.setMinimum(1)
+        self.quantity_spinbox.setMaximum(10) # Or adjust max as needed
+        self.quantity_spinbox.setValue(self.llm_controller.action_quantity)
+        llm_param_row_layout.addWidget(self.pc_level_label)
+        llm_param_row_layout.addWidget(self.pc_level_spinbox)
+        llm_param_row_layout.addWidget(self.quantity_label)
+        llm_param_row_layout.addWidget(self.quantity_spinbox)
+        llm_param_row_layout.addStretch(1)
+        self.left_controls_layout.addLayout(llm_param_row_layout)
+        self.left_controls_layout.addStretch(1) # Push controls up
 
-        self.action_quantity_label = QLabel("Quantity:")
-        self.action_quantity_spinbox = QSpinBox()
-        self.action_quantity_spinbox.setRange(1, 10)
-        # Set initial value from LLMController state
-        self.action_quantity_spinbox.setValue(self.llm_controller.action_quantity)
-        # ----------------------------------
+        self.controls_layout.addLayout(self.left_controls_layout, 1) # Add left controls with stretch
 
-        self.dm_action_layout.addWidget(self.pc_level_label, 0, 0)
-        self.dm_action_layout.addWidget(self.pc_level_spinbox, 0, 1)
-        self.dm_action_layout.addWidget(self.action_quantity_label, 0, 2)
-        self.dm_action_layout.addWidget(self.action_quantity_spinbox, 0, 3)
-        self.dm_action_layout.setColumnStretch(4, 1)
+        # -- Right Controls (DM Action Buttons Grid) --
+        # Replace DMActionPanel with a simple grid layout here
+        self.right_controls_layout = QGridLayout()
+        self.right_controls_layout.setSpacing(6) # Spacing between buttons
 
-        # --- Action Buttons - CREATE FIRST ---
+        # Create buttons (previously in DMActionPanel)
         self.generate_npc_button = QPushButton("Gen NPC")
         self.describe_surroundings_button = QPushButton("Describe Env")
         self.generate_encounter_button = QPushButton("Gen Encounter")
         self.suggest_rumor_button = QPushButton("Suggest Rumor")
-        self.suggest_complication_button = QPushButton("Suggest Twist")
+        self.suggest_complication_button = QPushButton("Suggest Twist") # Renamed label for clarity
         self.generate_mundane_items_button = QPushButton("Gen Mundane")
         self.generate_loot_button = QPushButton("Gen Loot")
-        # -------------------------------------
+        self.test_button = QPushButton("Test Action")
 
-        # Add buttons to layout
-        self.dm_action_layout.addWidget(self.generate_npc_button, 1, 0)
-        self.dm_action_layout.addWidget(self.describe_surroundings_button, 1, 1)
-        self.dm_action_layout.addWidget(self.generate_encounter_button, 1, 2)
-        self.dm_action_layout.addWidget(self.suggest_rumor_button, 1, 3)
-        self.dm_action_layout.addWidget(self.suggest_complication_button, 1, 4)
-        self.dm_action_layout.addWidget(self.generate_mundane_items_button, 1, 5)
-        self.dm_action_layout.addWidget(self.generate_loot_button, 1, 6)
-        self.dm_action_layout.setColumnStretch(7, 1)
-        # --- Add DM action layout to main layout AFTER it's populated ---
-        self.main_layout.addLayout(self.dm_action_layout)
-        # --------------------------------------------------
+        # Add buttons to the grid layout
+        self.right_controls_layout.addWidget(self.generate_npc_button, 0, 0)
+        self.right_controls_layout.addWidget(self.describe_surroundings_button, 0, 1)
+        self.right_controls_layout.addWidget(self.generate_encounter_button, 0, 2)
+        self.right_controls_layout.addWidget(self.suggest_rumor_button, 0, 3)
+        self.right_controls_layout.addWidget(self.suggest_complication_button, 1, 0)
+        self.right_controls_layout.addWidget(self.generate_mundane_items_button, 1, 1)
+        self.right_controls_layout.addWidget(self.generate_loot_button, 1, 2)
+        self.right_controls_layout.addWidget(self.test_button, 1, 3)
+        # Add empty widgets or stretches if needed to align columns/rows, e.g.:
+        # self.right_controls_layout.setColumnStretch(4, 1) # Stretch empty column
 
-        # --- Add Status Bar ---
-        self.statusBar().showMessage("Ready.")
-        # ---------------------
+        self.controls_layout.addLayout(self.right_controls_layout) # Add right controls (no stretch needed here typically)
+
+        # Add the combined controls widget to the main layout (no stretch factor)
+        self.main_layout.addWidget(self.controls_widget)
+
+        # --- Status Bar ---
+        self.statusBar().showMessage("Ready.") # Initialize status bar
+
 
         # --- Connect Signals and Slots ---
         self._connect_signals()
@@ -262,17 +260,22 @@ class MainWindow(QMainWindow):
         self.llm_controller.llm_error.connect(self._show_error_message)
 
         # 7.  DM action parameter spinboxes → LLMController properties
-        self.pc_level_spinbox.valueChanged.connect(lambda val: setattr(self.llm_controller, "pc_level", val))
-        self.action_quantity_spinbox.valueChanged.connect(lambda val: setattr(self.llm_controller, "action_quantity", val))
+        self.pc_level_spinbox.valueChanged.connect(
+            lambda val: setattr(self.llm_controller, "pc_level", val)
+        )
+        self.quantity_spinbox.valueChanged.connect(
+            lambda val: setattr(self.llm_controller, "action_quantity", val)
+        )
 
         # 8.  DM-action buttons → trigger corresponding prompt files
-        self.generate_npc_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("generate_npc_prompt.md"))
-        self.describe_surroundings_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("describe_environment_prompt.md"))
-        self.generate_encounter_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("generate_encounter_prompt.md"))
-        self.suggest_rumor_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("suggest_rumor_prompt.md"))
-        self.suggest_complication_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("suggest_complication_prompt.md"))
-        self.generate_mundane_items_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("generate_mundane_items_prompt.md"))
-        self.generate_loot_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("generate_loot_prompt.md"))
+        self.generate_npc_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_npc.md"))
+        self.describe_surroundings_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_describe_surroundings.md"))
+        self.generate_encounter_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_encounter.md"))
+        self.suggest_rumor_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_suggest_rumor.md"))
+        self.suggest_complication_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_suggest_complication.md"))
+        self.generate_mundane_items_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_mundane_items.md"))
+        self.generate_loot_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_loot.md"))
+        self.test_button.clicked.connect(lambda: self.app_logger.info("Test Action button clicked."))
 
     def _on_transcription_started(self):
         """Updates UI when transcription starts."""
@@ -307,18 +310,21 @@ class MainWindow(QMainWindow):
 
     def _set_dm_actions_enabled(self, enabled: bool):
         # Enable/disable the whole DM-action control section so the user cannot trigger while LLM is busy.
-        self.action_quantity_spinbox.setEnabled(enabled)
-        self.pc_level_spinbox.setEnabled(enabled)
-        for btn in [
-            self.generate_npc_button,
-            self.describe_surroundings_button,
-            self.generate_encounter_button,
-            self.suggest_rumor_button,
-            self.suggest_complication_button,
-            self.generate_mundane_items_button,
-            self.generate_loot_button,
-        ]:
-            btn.setEnabled(enabled)
+        # --- Update to disable individual buttons ---
+        self.generate_npc_button.setEnabled(enabled)
+        self.describe_surroundings_button.setEnabled(enabled)
+        self.generate_encounter_button.setEnabled(enabled)
+        self.suggest_rumor_button.setEnabled(enabled)
+        self.suggest_complication_button.setEnabled(enabled)
+        self.generate_mundane_items_button.setEnabled(enabled)
+        self.generate_loot_button.setEnabled(enabled)
+        self.test_button.setEnabled(enabled)
+        # Optionally disable PC Level/Quantity too? Depends on desired UX.
+        # self.pc_level_spinbox.setEnabled(enabled)
+        # self.quantity_spinbox.setEnabled(enabled)
+        # self.pc_level_label.setEnabled(enabled) # Labels too if desired
+        # self.quantity_label.setEnabled(enabled)
+        # ------------------------------------------
 
     def update_user_speech_pane(self, hypothesis_text: str):
         """
@@ -402,10 +408,54 @@ class MainWindow(QMainWindow):
     def _on_user_speech_checkbox_changed(self, state: int):
         """Show/hide the user-speech pane and persist the preference to the config."""
         show = state == Qt.Checked
-        self.user_speech_display.setVisible(show)
+        # --- Adjust splitter visibility instead of just the widget ---
+        # Find the index of the user speech display in the splitter
+        user_speech_widget = self.user_speech_display
+        splitter_index = -1
+        for i in range(self.splitter.count()):
+            if self.splitter.widget(i) == user_speech_widget:
+                splitter_index = i
+                break
+        
+        if splitter_index != -1:
+            # Hide/show by setting size to 0 or restoring previous sizes
+            if show:
+                # Restore sizes (simple approach: equal split or remember last)
+                # Let's try restoring to a default split for simplicity
+                current_sizes = self.splitter.sizes()
+                if sum(current_sizes) > 0 and current_sizes[splitter_index] == 0: # Check if it was hidden
+                     # Simple restore: give it some space, e.g., 40% or restore previous non-zero
+                     total_width = sum(current_sizes)
+                     restore_width = max(100, int(total_width * 0.4)) # Ensure minimum width
+                     other_width = total_width - restore_width
+                     new_sizes = [0] * self.splitter.count()
+                     new_sizes[splitter_index] = restore_width
+                     # Distribute remaining width (assuming 2 panes for simplicity)
+                     other_index = 1 - splitter_index # Assumes only 2 panes
+                     new_sizes[other_index] = other_width
+                     self.splitter.setSizes(new_sizes)
+                elif sum(current_sizes) == 0: # If splitter somehow has 0 size
+                    self.splitter.setSizes([600, 400]) # Fallback to default
+
+                self.user_speech_display.setVisible(True) # Ensure widget is visible
+            else:
+                # Hide by setting size to 0
+                current_sizes = self.splitter.sizes()
+                if sum(current_sizes) > 0 : # Only modify if sizes are non-zero
+                    total_width = sum(current_sizes)
+                    new_sizes = [0] * self.splitter.count()
+                    new_sizes[splitter_index] = 0
+                    # Give all width to the other pane (assuming 2 panes)
+                    other_index = 1 - splitter_index
+                    new_sizes[other_index] = total_width
+                    self.splitter.setSizes(new_sizes)
+                self.user_speech_display.setVisible(False) # Also hide widget just in case
+
+        # Original logic for config saving
         self.config.set("ui_settings.show_user_speech", show)
         self.config.save()
         self.app_logger.info(f"'Show User Speech' set to {show}")
+        # ---------------------------------------------------------
 
     def _on_audio_source_changed(self, selected_source: str):
         """Proxy combo-box changes to the AudioController (persists via that class)."""
