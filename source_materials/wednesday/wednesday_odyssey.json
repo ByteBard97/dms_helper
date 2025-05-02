@@ -1,0 +1,10 @@
+{
+  "description": "Wednesday - Odyssey of the Dragonlords",
+  "preamble_file": "source_materials/preamble.md",
+  "pc_description_file": "source_materials/wednesday/PC_descriptions.txt",
+  "current_state_file": "source_materials/wednesday/summary.md",
+  "adventure_files": [
+    "Chapter_3_Summoned_by_the_King.md",
+  ],
+  "extra_lore_files": []
+} 

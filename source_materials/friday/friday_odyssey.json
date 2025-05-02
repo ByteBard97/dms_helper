@@ -1,8 +1,8 @@
 {
   "description": "Ceres Group - Odyssey of the Dragonlords",
   "preamble_file": "source_materials/preamble.md",
-  "pc_description_file": "source_materials/ceres_group/PC_descriptions.txt",
-  "current_state_file": "source_materials/ceres_group/ceres_adventure_summary.md",
+  "pc_description_file": "source_materials/friday/PC_descriptions.txt",
+  "current_state_file": "source_materials/friday/friday_summary.md",
   "adventure_files": [
     "source_materials/Chapter_4_Voyage_of_the_Ultros.md",
     "source_materials/Chapter_5_The_Cerulean_Gulf.md",

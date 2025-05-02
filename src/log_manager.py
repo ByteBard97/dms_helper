@@ -133,7 +133,7 @@ class LogManager:
             sys.stderr.write("LogManager: Configuring Conversation Logger...\n")
             sys.stderr.flush()
             conversation_logger.setLevel(logging.INFO)
-            json_formatter = JsonFormatter(datefmt='%Y-%m-%dT%H:%M:%S.%f%z')
+            json_formatter = JsonFormatter(datefmt='%Y-%m-%d %H:%M:%S')
             conversation_file_handler = logging.FileHandler(session_log_file_jsonl, mode='w', encoding='utf-8') # Path is logs/session.log.jsonl
             conversation_file_handler.setFormatter(json_formatter)
             conversation_logger.addHandler(conversation_file_handler)
@@ -144,7 +144,8 @@ class LogManager:
             # --- Configure Raw Transcript Logger (New) --- 
             sys.stderr.write("LogManager: Configuring Raw Transcript Logger...\n")
             sys.stderr.flush()
-            raw_transcript_logger.setLevel(logging.INFO)
+            # Set level to WARNING to avoid logging every segment (INFO/DEBUG level)
+            raw_transcript_logger.setLevel(logging.WARNING)
             raw_formatter = logging.Formatter('%(asctime)s - %(message)s')
             raw_file_handler = logging.FileHandler(raw_transcript_log_file, mode='w', encoding='utf-8')
             raw_file_handler.setFormatter(raw_formatter)

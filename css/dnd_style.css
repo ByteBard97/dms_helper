@@ -1,2 +1,105 @@
 @import "https://fonts.googleapis.com/css?family=Libre+Baskerville&display=swap";body{background:#f7ebcb;font-family:Libre Baskerville,serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-size:16px}h1,h2,h3,h4,h5,h6{color:#7a2b17;text-transform:uppercase;line-height:1.1;margin:24px 0 12px}h1:first-letter,h2:first-letter,h3:first-letter,h4:first-letter,h5:first-letter,h6:first-letter{font-size:150%}h1{font-size:24px}h1,h2{border-bottom:2px solid tan}p{line-height:1.4;margin:0}p+p{text-indent:24px;margin-top:0!important}.box{background-color:#fff;padding:16px;border-left:2px solid #000;border-right:2px solid #000;overflow:hidden;margin:16px 0}
 /*# sourceMappingURL=dnd.ff20a3d7.css.map */
+
+/* Added Styles for D&D 5e Elements */
+
+/* --- General Styles (Inspired by statblock5e/PHB) --- */
+
+/* Use a common D&D-like heading font if available, otherwise fallback */
+.stat-block h1, .stat-block h2, .stat-block h3, .stat-block h4 {
+    font-family: 'MrEavesSmallCaps', 'Libre Baskerville', serif; /* Assuming MrEavesSmallCaps might be loaded elsewhere or substituting */
+    color: #7A2B17; /* Dark red */
+    margin-top: 0.5em;
+    margin-bottom: 0.2em;
+    font-weight: bold;
+}
+
+.stat-block h1 {
+    font-size: 1.8em;
+    border-bottom: 1px solid #7A2B17;
+    margin-bottom: 0.4em;
+}
+
+.stat-block h2 {
+    font-size: 1.1em;
+    font-style: italic;
+    border: none;
+    margin-bottom: 0.5em;
+}
+
+.stat-block h3 {
+    font-size: 1.4em;
+    border-bottom: 1px solid #7A2B17;
+    text-transform: uppercase;
+    margin-top: 1em;
+}
+
+.stat-block hr {
+    border: none;
+    border-top: 5px solid #58180D;
+    /* Simulate the tapered look - more complex SVG/gradient needed for exact match */
+    height: 5px;
+    background: linear-gradient(to right, transparent, #58180D 20%, #58180D 80%, transparent);
+    margin: 0.5em 0;
+}
+
+.stat-block p {
+    margin: 0.3em 0;
+    line-height: 1.4;
+}
+
+.stat-block strong {
+    color: #7A2B17; /* Match heading color */
+}
+
+/* --- Specific D&D Classes --- */
+
+.stat-block {
+    background-color: #FDF1DC; /* Parchment background */
+    padding: 10px;
+    border: 1px solid #DDD;
+    border-radius: 3px;
+    margin-bottom: 1em;
+    font-family: 'Bookinsanity', 'Libre Baskerville', serif; /* Assuming Bookinsanity might be loaded */
+    color: #333;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+}
+
+.read-aloud {
+    background-color: #EFEFEF; /* Light grey background */
+    border-left: 3px solid #7A2B17; /* Dark red left border */
+    padding: 10px 15px;
+    margin: 1em 0;
+    font-style: italic;
+}
+
+.dm-note {
+    background-color: #FFFACD; /* Light yellow background */
+    border: 1px dashed #B8860B; /* DarkGoldenrod dashed border */
+    padding: 10px;
+    margin: 1em 0;
+    font-size: 0.9em;
+}
+
+.table-5e table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.table-5e th, .table-5e td {
+    border: 1px solid #7A2B17; /* Dark red border */
+    padding: 5px 8px;
+    text-align: left;
+}
+
+.table-5e th {
+    background-color: #FDF1DC; /* Parchment background for header */
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+.table-5e tr:nth-child(odd) td {
+    background-color: #FFF8E7; /* Slightly lighter parchment for odd rows */
+}

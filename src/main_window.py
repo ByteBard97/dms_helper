@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
         self.ollama_client = None
         self.gatekeeper_prompt_template = None
         self.main_prompt_template = None # Add main template reference
+        self.styling_guide_content = None # <<< ADDED: Initialize styling guide content
         self.accumulator = TranscriptAccumulator() # Initialize accumulator
         self.initialize_llm_and_gatekeeper()
         
@@ -301,7 +302,7 @@ class MainWindow(QMainWindow):
         LogManager.get_app_logger().info("MainWindow initialization complete.") # Use LogManager
 
     def initialize_llm_and_gatekeeper(self):
-        """Initializes LLMs, loads prompts, accumulator, and potentially past session."""
+        """Initializes LLMs, loads prompts, accumulator, styling guide, and potentially past session.""" # Updated docstring
         app_logger = LogManager.get_app_logger()
         app_logger.info("Initializing Systems from Config...")
 
@@ -310,27 +311,39 @@ class MainWindow(QMainWindow):
         gatekeeper_prompt_path_str = self.config.get("paths.gatekeeper_prompt", "prompts/gatekeeper_prompt.md")
         main_prompt_path_str = self.config.get("paths.main_prompt", "prompts/dm_assistant_prompt.md")
         campaign_config_path_str = self.config.get("paths.campaign_config", "source_materials/default_campaign.json")
+        style_guide_path_str = "prompts/markdown_styling_guide.md" # Relative path
 
         gatekeeper_prompt_path = project_root / gatekeeper_prompt_path_str
         main_prompt_path = project_root / main_prompt_path_str
         campaign_config_path = project_root / campaign_config_path_str
+        style_guide_path = project_root / style_guide_path_str # <<< ADDED: Define style guide path
 
-        # Load prompts (Main and Gatekeeper)
+        # --- Load Main Prompt Template --- (CRITICAL)
         if main_prompt_path.is_file():
             self.main_prompt_template = main_prompt_path.read_text(encoding="utf-8")
             app_logger.info("Main prompt template loaded.")
         else:
-            app_logger.error(f"ERROR: Main prompt file not found: {main_prompt_path}")
-            self.main_prompt_template = "{transcript_chunk}"
-            app_logger.warning("Warning: Using fallback main prompt.")
+            app_logger.critical(f"CRITICAL ERROR: Main prompt file not found: {main_prompt_path}. Application cannot continue.")
+            sys.exit(1) # Exit immediately if critical file is missing
 
+        # --- Load Gatekeeper Prompt Template --- (CRITICAL)
         if gatekeeper_prompt_path.is_file():
             self.gatekeeper_prompt_template = gatekeeper_prompt_path.read_text(encoding="utf-8")
             app_logger.info("Gatekeeper prompt loaded.")
         else:
-            app_logger.error(f"ERROR: Gatekeeper prompt file not found: {gatekeeper_prompt_path}")
-            self.gatekeeper_prompt_template = "Context: {accumulated_chunk}... Respond ONLY YES or NO."
-            app_logger.warning("Warning: Using fallback gatekeeper prompt.")
+            app_logger.critical(f"CRITICAL ERROR: Gatekeeper prompt file not found: {gatekeeper_prompt_path}. Application cannot continue.")
+            sys.exit(1) # Exit immediately
+
+        # --- Load Styling Guide --- (CRITICAL per user request)
+        if style_guide_path.is_file():
+            # Read directly, let errors propagate per rules
+            self.styling_guide_content = style_guide_path.read_text(encoding="utf-8")
+            app_logger.info("Markdown styling guide loaded successfully.")
+        else:
+            # Log CRITICAL error and exit if missing
+            app_logger.critical(f"CRITICAL ERROR: Markdown styling guide not found at {style_guide_path}. Application cannot continue.")
+            self.styling_guide_content = None # Ensure it's None before exiting
+            sys.exit(1) # Exit immediately
 
         # Initialize Ollama Client
         # ollama_host = self.config.get("servers.ollama_host", "http://localhost:11434")
@@ -738,6 +751,12 @@ Elara spots a patch of glowing fungi near the stream.
 
         # Format the prompt using the loaded template
         formatted_prompt = self.main_prompt_template.format(transcript_chunk=chunk_text)
+
+        # --- Append Styling Guide --- (REVISED - Use loaded content)
+        if self.styling_guide_content:
+            formatted_prompt += "\n\n---\n**Markdown Styling Instructions:**\n" + self.styling_guide_content
+        # ----------------------------------------------------------
+
         LogManager.get_app_logger().debug(f"Formatted prompt for LLM: {formatted_prompt[:200]}...") # Log beginning of prompt
         LogManager.get_app_logger().info(f"Starting MAIN LLM worker thread...")  # Use LogManager
         
@@ -1041,6 +1060,12 @@ Elara spots a patch of glowing fungi near the stream.
             quantity=self.action_quantity, 
             pc_level=self.pc_level
         )
+
+        # --- Append Styling Guide --- (REVISED - Use loaded content)
+        if self.styling_guide_content:
+            formatted_prompt += "\n\n---\n**Markdown Styling Instructions:**\n" + self.styling_guide_content
+        # ------------------------------------------------------
+
         logger.debug(f"Formatted DM Action Prompt: {formatted_prompt[:150]}...")
         # Log the user request for the DM action
         # Log with explicit error check instead of try/except for JSON part - REMOVED
