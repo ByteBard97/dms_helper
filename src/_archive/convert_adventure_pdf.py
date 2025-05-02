@@ -44,9 +44,9 @@ def convert_pdf_to_markdown(pdf_path: str, output_dir: str):
     full_output_path = output_path / output_filename
 
     # Optional: Check if Markdown file already exists and skip if desired
-    # if full_output_path.exists():
-    #     logging.warning(f"Output file already exists, skipping: {full_output_path}")
-    #     return
+    if full_output_path.exists():
+        logging.warning(f"Output file already exists, skipping: {full_output_path}")
+        return
 
     logging.info(f"Starting conversion for: {pdf_filepath.name} using PdfConverter")
     logging.info(f"Output will be saved to: {full_output_path}")
