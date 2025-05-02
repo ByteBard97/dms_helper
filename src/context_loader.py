@@ -39,7 +39,20 @@ def _load_single_file_content(file_path_str: Optional[str]) -> Optional[str]:
     if file_path.is_file():
         logging.info(f"Loading context from: {file_path}")
         # No try block as per rules
-        return file_path.read_text(encoding="utf-8")
+        content = file_path.read_text(encoding="utf-8")
+        
+        # --- Add logging for first 5 lines --- 
+        # logging.info(f"  -> Preparing to send file: {file_path.name}")
+        # lines = content.splitlines()
+        # num_lines_to_log = min(len(lines), 5)
+        # for i in range(num_lines_to_log):
+            # Indent logged lines for clarity
+            # logging.info(f"     | {lines[i]}")
+        # if len(lines) > 5:
+            # logging.info("     | ... (file truncated for log)")
+        # ---------------------------------------
+        
+        return content
     else:
         logging.warning(f"Context file not found, skipping: {file_path}")
         return None

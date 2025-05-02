@@ -49,7 +49,12 @@ class TranscriptionController(QObject):
         self.app_logger = LogManager.get_app_logger()
         self.raw_transcript_logger = LogManager.get_raw_transcript_logger()
 
-        self.accumulator = TranscriptAccumulator()
+        # --- Load min_sentences from config ---
+        default_min_sentences = 3 # Define a sensible default
+        initial_min_sentences = self.config.get("transcription.min_sentences", default_min_sentences)
+        # ------------------------------------
+
+        self.accumulator = TranscriptAccumulator(initial_min_sentences) # Pass initial value
         self.segment_queue = queue.Queue() # Queue for raw segments from client thread
 
         # Client and Thread Management State
@@ -65,8 +70,15 @@ class TranscriptionController(QObject):
 
     def set_min_sentences(self, value: int):
         """Updates the minimum sentences required by the accumulator."""
-        self.accumulator.min_sentences = value
-        self.app_logger.info(f"TranscriptAccumulator min_sentences set to: {value}")
+        if self.accumulator.min_sentences != value: # Only save if changed
+            self.accumulator.min_sentences = value
+            # --- Save to config ---
+            self.config.set("transcription.min_sentences", value)
+            self.config.save()
+            # --------------------
+            self.app_logger.info(f"TranscriptAccumulator min_sentences set to: {value} and saved to config.")
+        else:
+            self.app_logger.debug(f"TranscriptAccumulator min_sentences already set to: {value}")
 
     def flush_accumulator(self):
         """
@@ -277,8 +289,8 @@ class TranscriptionController(QObject):
                 break
 
             if isinstance(data, list):
-                # --- Log Raw ---
-                self.raw_transcript_logger.info(f"RAW: {data}")
+                # --- Log Raw (Disabled for now) ---
+                # self.raw_transcript_logger.info(f"RAW: {data}")
 
                 # --- Emit Intermediate ---
                 current_hypothesis = " ".join(seg.get('text', '').strip() for seg in data)

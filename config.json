@@ -25,10 +25,13 @@
     },
     "audio_settings": {
         "last_playback_position": 250.112,
-        "input_source": "File"
+        "input_source": "Microphone"
     },
     "dm_actions": {
         "default_pc_level": 20,
         "default_quantity": 4
+    },
+    "transcription": {
+        "min_sentences": 5
     }
 }

@@ -103,3 +103,165 @@
 .table-5e tr:nth-child(odd) td {
     background-color: #FFF8E7; /* Slightly lighter parchment for odd rows */
 }
+
+/* --- Styles Adapted from statblock5e --- */
+
+/* Main container - mimicking #content-wrap from stat-block.html */
+.statblock5e-content {
+    font-family: 'Noto Sans', 'Myriad Pro', Calibri, Helvetica, Arial, sans-serif; /* Keep original font stack */
+    font-size: 13.5px;
+    background: #FDF1DC; /* Parchment background */
+    padding: 0.6em;
+    padding-bottom: 0.5em;
+    border: 1px #DDD solid;
+    box-shadow: 0 0 1.5em #867453; /* Original shadow */
+    margin: 1em 2px; /* Added margin top/bottom for spacing */
+    position: relative; /* Needed for potential absolute children if any */
+    z-index: 0;
+    /* Columns might be hard to manage here, start without */
+}
+
+/* Mimicking the orange bars from stat-block.html */
+.statblock5e-bar {
+    height: 5px;
+    background: #E69A28;
+    border: 1px solid #000;
+    margin: 0 2px; /* Match container margin */
+}
+
+/* Mimicking creature-heading.html styles */
+.statblock5e-creature-heading h1 {
+    font-family: 'Libre Baskerville', 'Lora', 'Calisto MT', 'Bookman Old Style', Bookman, 'Goudy Old Style', Garamond, 'Hoefler Text', 'Bitstream Charter', Georgia, serif;
+    color: #7A200D;
+    font-weight: 700;
+    margin: 0;
+    font-size: 23px;
+    letter-spacing: 1px;
+    font-variant: small-caps;
+    border: none; /* Override other h1 styles */
+    text-transform: none; /* Override other h1 styles */
+}
+
+.statblock5e-creature-heading h2 {
+    font-weight: normal;
+    font-style: italic;
+    font-size: 12px;
+    margin: 0;
+    border: none; /* Override other h2 styles */
+    color: #333; /* Use default text color for subtitle */
+}
+
+/* Mimicking top-stats.html */
+.statblock5e-top-stats > * { /* Apply red color to direct children if needed, adjust selector */
+    color: #7A200D;
+}
+
+/* Mimicking property-line.html */
+.statblock5e-property-line {
+    line-height: 1.4;
+    display: block;
+    text-indent: -1em;
+    padding-left: 1em;
+    margin: 0.2em 0; /* Add some vertical spacing */
+}
+
+.statblock5e-property-line h4 {
+    margin: 0;
+    display: inline;
+    font-weight: bold;
+    color: #7A200D; /* Ensure color */
+}
+
+.statblock5e-property-line p {
+    display: inline;
+    text-indent: 0;
+    margin: 0;
+    color: #333; /* Default text color */
+}
+
+/* Mimicking property-block.html */
+.statblock5e-property-block {
+    margin-top: 0.3em;
+    margin-bottom: 0.9em;
+    line-height: 1.5;
+    display: block;
+}
+
+.statblock5e-property-block h4 {
+    margin: 0;
+    display: inline;
+    font-weight: bold;
+    font-style: italic;
+    color: #333; /* Standard text color for these */
+}
+
+/* First paragraph inline with italic h4 */
+.statblock5e-property-block p:first-of-type {
+    display: inline;
+    text-indent: 0;
+    margin: 0;
+}
+
+/* Subsequent paragraphs indented */
+.statblock5e-property-block p + p {
+    text-indent: 1em;
+    margin: 0;
+}
+
+/* Mimicking abilities-block.html table */
+.statblock5e-abilities-table table {
+    width: 100%;
+    border: 0px;
+    border-collapse: collapse;
+    margin: 0; /* Remove margin if inside other blocks */
+    text-align: center;
+}
+.statblock5e-abilities-table th,
+.statblock5e-abilities-table td {
+    width: 16.66%; /* Equal width for 6 columns */
+    text-align: center;
+    padding: 2px 0; /* Minimal padding */
+    color: #7A200D; /* Red color for ability scores */
+}
+
+/* Mimicking tapered-rule.html - using border-image */
+.statblock5e-tapered-rule {
+    height: 5px;
+    border: 0;
+    border-top: 5px solid transparent; /* Base height */
+    /* A simple linear gradient attempt at tapering */
+    border-image: linear-gradient(to right, transparent, #922610 15%, #922610 85%, transparent) 1 stretch;
+    margin-top: 0.6em;
+    margin-bottom: 0.35em;
+}
+
+/* General h3 style within statblock5e-content (from stat-block.html ::slotted(h3)) */
+.statblock5e-content h3 {
+    border-bottom: 1px solid #7A200D;
+    color: #7A200D;
+    font-size: 21px;
+    font-variant: small-caps;
+    font-weight: normal;
+    letter-spacing: 1px;
+    margin: 0;
+    margin-bottom: 0.3em;
+    /* Attempt to prevent breaking inside/after */
+    break-inside: avoid-column;
+    break-after: avoid-column;
+    page-break-inside: avoid; /* For printing */
+    page-break-after: avoid; /* For printing */
+}
+
+/* General p style within statblock5e-content (from stat-block.html ::slotted(p)) */
+.statblock5e-content > p { /* Target direct p children if needed, adjust */
+    margin-top: 0.3em;
+    margin-bottom: 0.9em;
+    line-height: 1.5;
+}
+
+/* Prevent bottom margin on last element */
+.statblock5e-content > *:last-child {
+    margin-bottom: 0;
+}
+
+/* --- End Adapted statblock5e Styles --- */

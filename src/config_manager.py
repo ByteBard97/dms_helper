@@ -82,21 +82,31 @@ class ConfigManager:
         config_logger.debug("Configuration saved successfully.") # Debug level for save success
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Gets a configuration value using dot notation."""
-        # No try/except per rules. KeyError will propagate if key is invalid.
-        keys = key.split('.')
-        value = self.data
-        for k in keys:
-            if isinstance(value, dict):
-                value = value[k] # Will raise KeyError if k is not in value
-            else:
-                # Handle case where an intermediate key is not a dict
-                config_logger.warning(f"Config key '{key}' access error: '{k}' is not a dictionary level.")
-                # Raise an error or return default? Returning default might be safer here
-                # even without try/except, as KeyError wasn't the only potential issue.
-                # Let's stick to returning default for this specific case, but KeyError will propagate.
-                return default
-        return value
+        """
+        Retrieves a value from the configuration using a dot-separated key.
+
+        Args:
+            key: The dot-separated key (e.g., "servers.transcription_host").
+            default: The value to return if the key is not found.
+
+        Returns:
+            The configuration value or the default.
+        """
+        try:
+            value = self.data
+            for k in key.split('.'):
+                # Check if the current level is a dictionary and the key exists
+                if isinstance(value, dict) and k in value:
+                    value = value[k]
+                else:
+                    # Key not found at this level, return default
+                    config_logger.debug(f"Key '{k}' not found in path '{key}'. Returning default: {default}")
+                    return default
+            return value
+        except Exception as e:
+            # Catch any other unexpected errors during lookup
+            config_logger.error(f"Error getting config key '{key}': {e}", exc_info=True)
+            return default
 
     def set(self, key: str, value: Any):
         """Sets a configuration value using dot notation and saves immediately."""
