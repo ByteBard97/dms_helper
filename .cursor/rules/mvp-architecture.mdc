@@ -1,0 +1,43 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Views are Passive**
+  - Widgets (e.g., `LLMOutputWidget`, `UserSpeechWidget`) contain only rendering logic and basic Qt signal/slot wiring.
+  - No parsing, data transformation, file I/O, or business decisions inside view classes.
+  ```python
+  # ✅ GOOD – passive widget accepts pre-formatted HTML
+  class LLMOutputWidget(QWebEngineView):
+      @pyqtSlot(str)
+      def append_html(self, html: str) -> None:
+          self.page().runJavaScript(f"document.body.innerHTML += {json_dumps(html)}")
+  ```
+
+- **Presenters / Controllers hold Domain Logic**
+  - Parsing LLM replies, detecting JSON stat blocks, validation, logging, enabling/disabling UI, and prompt construction all belong in controllers or dedicated service modules.
+  - Presenters update views via their public API or Qt signals.
+  ```python
+  # ✅ GOOD – controller converts then updates view
+  html = statblock_renderer.json_to_statblock_html(data)
+  main_window.output_widget.append_html(html)
+  ```
+dddd
+- **Models are UI-agnostic**
+  - Encapsulate data structures, JSON schemas, and validation helpers (e.g., `statblock_renderer.py`).
+  - No Qt dependencies inside model modules.
+
+- **Testing Guidelines**
+  - Unit-test Controllers/Models without a `QApplication`.
+  - Widgets can be tested with Qt’s signal assertions or Qt Test only for rendering behaviour.
+
+- **Anti-patterns (DON’T)**
+  - **DON’T** convert markdown to HTML or parse JSON inside a widget.
+  - **DON’T** call another widget directly; route interactions through a controller.
+  - **DON’T** write to disk or load files from a view layer.
+
+- **Existing Code References**
+  - `LLMOutputWidget` (View) + `LLMController` (Presenter) follow MVP.
+  - Upcoming `statblock_renderer.py` will act as Model/service.
+```
+

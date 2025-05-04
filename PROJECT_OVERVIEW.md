@@ -1,6 +1,6 @@
 # D&D Helper Project Overview
 
-This document explains the high-level architecture, key modules, and directory layout of the **D&D Helper** project as of the latest refactor (Task #29 – modular widgets).
+This document explains the high-level architecture, key modules, and directory layout of the **D&D Helper** project as of the latest refactor set (Task #29 – modular widgets **and** Task #28 – streaming LLM output).
 
 ---
 ## Goal
@@ -90,6 +90,7 @@ API keys are loaded from `.env` (see `requirements.md`).
 * Audio source combo box now initialises from config to preserve *File* playback choice.
 * Added configurable font size for transcription pane (`ui_settings.speech_font_size`).
 * Legacy code preserved under `src/old/` for reference.
+* Implemented real-time streaming of Gemini responses to the GUI via new signals in `LLMController` and JS updates in `LLMOutputWidget` (Task #28).
 
 ---
 ## Planned / Pending Work
@@ -97,4 +98,4 @@ API keys are loaded from `.env` (see `requirements.md`).
 * Bottom control layout fine-tuning to align with the design spec (left column + 50%-width prompt under speech pane).
 
 ---
-*Last updated: {{DATE}} 
+*Last updated: 2025-05-04 
