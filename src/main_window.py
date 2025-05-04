@@ -26,6 +26,11 @@ from markdown_utils import markdown_to_html_fragment
 # Custom widget grouping DM action controls
 # from dm_action_panel import DMActionPanel
 
+# New modular widgets
+from llm_output_widget import LLMOutputWidget
+from user_speech_widget import UserSpeechWidget
+from controls_widget import ControlsWidget
+
 class MainWindow(QMainWindow):
     """
     Main application window acting as an orchestrator for various controllers.
@@ -57,145 +62,62 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1000, 700) # Adjusted default size
 
         # Use camelCase for PyQt built-in attributes/methods
-        self.centralWidget_ = QWidget() # Note the underscore to avoid potential conflicts if needed, though unlikely here
+        self.centralWidget_ = QWidget()
         self.setCentralWidget(self.centralWidget_)
-        self.main_layout = QVBoxLayout(self.centralWidget_) # Main layout is Vertical
+        self.main_layout = QVBoxLayout(self.centralWidget_)
 
+        # --- Instantiate modular widgets ---
+        self.output_widget = LLMOutputWidget(self.config, parent=self)
+        self.user_speech_widget = UserSpeechWidget(self.config, parent=self)
+        self.controls_widget = ControlsWidget(self.config, parent=self)
         # --- Top Section: Splitter for Output and User Speech ---
         self.splitter = QSplitter(Qt.Horizontal)
 
-        # ----- Left Pane: LLM Output (Web View) -----
-        self.output_display = QWebEngineView()
-        settings = self.output_display.settings()
-        settings.setAttribute(settings.WebAttribute.WebGLEnabled, False)
-        settings.setAttribute(settings.WebAttribute.PluginsEnabled, False)
-        initial_html_structure = """
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset=\"UTF-8\">
-<link rel=\"stylesheet\" href=\"css/dnd_style.css\"> 
-</head>
-<body>
-    <h1>D&D Assistant Log</h1>
-    <p>LLM Suggestions will appear here...</p>
-    <hr>
-</body>
-</html>
-"""
-        self.output_display.setHtml(initial_html_structure, baseUrl=QUrl("file:///"))
-        self.splitter.addWidget(self.output_display)
+        # ----- Left Pane already handled by output_widget -----
+        self.splitter.addWidget(self.output_widget)
 
         # ----- Right Pane: User Speech (Text Edit) -----
-        self.user_speech_display = QTextEdit()
-        self.user_speech_display.setReadOnly(True)
-        self.user_speech_display.setPlaceholderText("Transcribed user speech will appear here...")
-        # Set visibility based on initial config
+        self.splitter.addWidget(self.user_speech_widget)
+        # Ensure proportional layout (≈60% A / 40% B) on startup
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 1)
         self.show_user_speech_state = self.config.get("ui_settings.show_user_speech", True)
-        self.user_speech_display.setVisible(self.show_user_speech_state)
-        self.splitter.addWidget(self.user_speech_display)
+        self.user_speech_widget.set_visibility(self.show_user_speech_state)
 
-        # Configure splitter sizes (optional, adjust as needed)
-        self.splitter.setSizes([600, 400]) # Example: 60% left, 40% right
+        # Configure splitter sizes to an even 50/50 split (pixels here are ratios)
+        self.splitter.setSizes([500, 500])
 
         # Add Splitter to Main Layout - it will take most space
         self.main_layout.addWidget(self.splitter, 1) # Add with stretch factor 1
 
-
-        # --- Bottom Section: Control Area ---
-        self.controls_widget = QWidget()
-        self.controls_layout = QHBoxLayout(self.controls_widget) # Horizontal layout for left/right controls
-        self.controls_layout.setContentsMargins(6, 6, 6, 6) # Add some padding
-
-        # -- Left Controls --
-        self.left_controls_layout = QVBoxLayout() # Vertical stacking for left controls
-
-        # Audio Source Row
-        audio_row_layout = QHBoxLayout()
-        self.audio_source_label = QLabel("Audio Source:")
-        self.audio_source_combobox = QComboBox()
-        self.audio_source_combobox.addItems(["File", "Microphone"])
-        self.audio_source_combobox.setCurrentText(self.audio_controller.current_source)
-        self.start_button = QPushButton("Start Listening")
-        self.stop_button = QPushButton("Stop Listening")
-        self.stop_button.setEnabled(False) # Initially disabled
-        audio_row_layout.addWidget(self.audio_source_label)
-        audio_row_layout.addWidget(self.audio_source_combobox)
-        audio_row_layout.addWidget(self.start_button)
-        audio_row_layout.addWidget(self.stop_button)
-        audio_row_layout.addStretch(1)
-        self.left_controls_layout.addLayout(audio_row_layout)
-
-        # Transcription Settings Row
-        transcription_settings_row_layout = QHBoxLayout()
-        self.user_speech_checkbox = QCheckBox("Show User Speech")
-        self.user_speech_checkbox.setChecked(self.show_user_speech_state)
-        self.min_sentences_label = QLabel("Min Sentences:")
-        self.min_sentences_spinbox = QSpinBox()
-        self.min_sentences_spinbox.setMinimum(1)
-        self.min_sentences_spinbox.setMaximum(10)
-        self.min_sentences_spinbox.setValue(self.transcription_controller.accumulator.min_sentences)
-        self.flush_button = QPushButton("Flush Accumulator")
-        transcription_settings_row_layout.addWidget(self.user_speech_checkbox)
-        transcription_settings_row_layout.addWidget(self.min_sentences_label)
-        transcription_settings_row_layout.addWidget(self.min_sentences_spinbox)
-        transcription_settings_row_layout.addWidget(self.flush_button)
-        transcription_settings_row_layout.addStretch(1)
-        self.left_controls_layout.addLayout(transcription_settings_row_layout)
-
-        # LLM Parameter Row (PC Level, Quantity)
-        llm_param_row_layout = QHBoxLayout()
-        self.pc_level_label = QLabel("PC Level:")
-        self.pc_level_spinbox = QSpinBox()
-        self.pc_level_spinbox.setMinimum(1)
-        self.pc_level_spinbox.setMaximum(20)
-        self.pc_level_spinbox.setValue(self.llm_controller.pc_level)
-        self.quantity_label = QLabel("Quantity:")
-        self.quantity_spinbox = QSpinBox()
-        self.quantity_spinbox.setMinimum(1)
-        self.quantity_spinbox.setMaximum(10) # Or adjust max as needed
-        self.quantity_spinbox.setValue(self.llm_controller.action_quantity)
-        llm_param_row_layout.addWidget(self.pc_level_label)
-        llm_param_row_layout.addWidget(self.pc_level_spinbox)
-        llm_param_row_layout.addWidget(self.quantity_label)
-        llm_param_row_layout.addWidget(self.quantity_spinbox)
-        llm_param_row_layout.addStretch(1)
-        self.left_controls_layout.addLayout(llm_param_row_layout)
-        self.left_controls_layout.addStretch(1) # Push controls up
-
-        self.controls_layout.addLayout(self.left_controls_layout, 1) # Add left controls with stretch
-
-        # -- Right Controls (DM Action Buttons Grid) --
-        # Replace DMActionPanel with a simple grid layout here
-        self.right_controls_layout = QGridLayout()
-        self.right_controls_layout.setSpacing(6) # Spacing between buttons
-
-        # Create buttons (previously in DMActionPanel)
-        self.generate_npc_button = QPushButton("Gen NPC")
-        self.describe_surroundings_button = QPushButton("Describe Env")
-        self.generate_encounter_button = QPushButton("Gen Encounter")
-        self.suggest_rumor_button = QPushButton("Suggest Rumor")
-        self.suggest_complication_button = QPushButton("Suggest Twist") # Renamed label for clarity
-        self.generate_mundane_items_button = QPushButton("Gen Mundane")
-        self.generate_loot_button = QPushButton("Gen Loot")
-        self.test_button = QPushButton("Test Action")
-
-        # Add buttons to the grid layout
-        self.right_controls_layout.addWidget(self.generate_npc_button, 0, 0)
-        self.right_controls_layout.addWidget(self.describe_surroundings_button, 0, 1)
-        self.right_controls_layout.addWidget(self.generate_encounter_button, 0, 2)
-        self.right_controls_layout.addWidget(self.suggest_rumor_button, 0, 3)
-        self.right_controls_layout.addWidget(self.suggest_complication_button, 1, 0)
-        self.right_controls_layout.addWidget(self.generate_mundane_items_button, 1, 1)
-        self.right_controls_layout.addWidget(self.generate_loot_button, 1, 2)
-        self.right_controls_layout.addWidget(self.test_button, 1, 3)
-        # Add empty widgets or stretches if needed to align columns/rows, e.g.:
-        # self.right_controls_layout.setColumnStretch(4, 1) # Stretch empty column
-
-        self.controls_layout.addLayout(self.right_controls_layout) # Add right controls (no stretch needed here typically)
-
-        # Add the combined controls widget to the main layout (no stretch factor)
+        # Bottom controls handled by modular ControlsWidget
         self.main_layout.addWidget(self.controls_widget)
+
+        # Expose child widgets for existing signal wiring until refactor complete
+        for _name in (
+            "start_button",
+            "stop_button",
+            "audio_source_combobox",
+            "show_user_speech_checkbox",
+            "min_sentences_spinbox",
+            "flush_button",
+            "pc_level_spinbox",
+            "quantity_spinbox",
+            "generate_npc_button",
+            "describe_surroundings_button",
+            "generate_encounter_button",
+            "suggest_rumor_button",
+            "suggest_complication_button",
+            "generate_mundane_items_button",
+            "generate_loot_button",
+            "test_button",
+        ):
+            if hasattr(self.controls_widget, _name):
+                setattr(self, _name, getattr(self.controls_widget, _name))
+
+        # Specific alias for legacy name mismatch BEFORE signal connections
+        if hasattr(self.controls_widget, "show_user_speech_checkbox"):
+            self.user_speech_checkbox = self.controls_widget.show_user_speech_checkbox
 
         # --- Status Bar ---
         self.statusBar().showMessage("Ready.") # Initialize status bar
@@ -208,6 +130,7 @@ class MainWindow(QMainWindow):
         # --- Initialize Settled Text ---
         # Could potentially load initial state if needed
         self.settled_user_text = "" # Reset on init
+        self.user_speech_widget.clear_transcript()
         self.update_user_speech_pane("") # Initial update to clear pane
         # -------------------------------
 
@@ -243,7 +166,7 @@ class MainWindow(QMainWindow):
         self.llm_controller.processing_finished.connect(self._on_llm_processing_finished)
         # --- Connect Intermediate Update Signal (Queued to ensure GUI-thread execution) ---
         self.transcription_controller.intermediate_transcription_update.connect(
-            self.update_user_speech_pane,
+            self.user_speech_widget.update_display,
             Qt.QueuedConnection
         )
         # ------------------------------------------------------
@@ -292,6 +215,17 @@ class MainWindow(QMainWindow):
             # self.test_button.clicked.connect(lambda: self._show_error_message(error_msg))
         # ------------------------------------------------------------
 
+        # Connect ControlsWidget high-level signals
+        cw = self.controls_widget
+        cw.audio_action_requested.connect(self._on_audio_action_request)
+        cw.dm_action_requested.connect(self._on_dm_action_request)
+        cw.transcription_settings_changed.connect(
+            lambda d: self.transcription_controller.set_min_sentences(d.get("min_sentences", 1))
+        )
+        cw.flush_requested.connect(self.transcription_controller.flush_accumulator)
+        cw.show_user_speech_toggled.connect(self.user_speech_widget.set_visibility)
+        cw.llm_params_changed.connect(self._on_llm_params_changed)
+
     def _on_transcription_started(self):
         """Updates UI when transcription starts."""
         self.app_logger.info("MainWindow: Transcription started signal received.")
@@ -324,22 +258,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Listening..." if is_transcribing else "Ready.")
 
     def _set_dm_actions_enabled(self, enabled: bool):
-        # Enable/disable the whole DM-action control section so the user cannot trigger while LLM is busy.
-        # --- Update to disable individual buttons ---
-        self.generate_npc_button.setEnabled(enabled)
-        self.describe_surroundings_button.setEnabled(enabled)
-        self.generate_encounter_button.setEnabled(enabled)
-        self.suggest_rumor_button.setEnabled(enabled)
-        self.suggest_complication_button.setEnabled(enabled)
-        self.generate_mundane_items_button.setEnabled(enabled)
-        self.generate_loot_button.setEnabled(enabled)
-        self.test_button.setEnabled(enabled)
-        # Optionally disable PC Level/Quantity too? Depends on desired UX.
-        # self.pc_level_spinbox.setEnabled(enabled)
-        # self.quantity_spinbox.setEnabled(enabled)
-        # self.pc_level_label.setEnabled(enabled) # Labels too if desired
-        # self.quantity_label.setEnabled(enabled)
-        # ------------------------------------------
+        # Delegate to ControlsWidget toggler
+        self.controls_widget.set_controls_enabled(enabled)
 
     def update_user_speech_pane(self, hypothesis_text: str):
         """
@@ -352,32 +272,7 @@ class MainWindow(QMainWindow):
         that the DM can clearly distinguish between what has already been spoken and
         what is still being recognised.
         """
-        # Debug log – keep so we can still trace issues if they arise again.
-        self.app_logger.debug(
-            f"[DEBUG] update_user_speech_pane called – hypothesis length: {len(hypothesis_text)}"
-        )
-
-        # Prepare the HTML fragments.  We convert newlines to <br> so that the QTextEdit
-        # (set via ``setHtml``) preserves line-breaks correctly.
-        settled_html = self.settled_user_text.replace("\n", "<br>")
-
-        separator = "\n\n--- In Progress ---\n" if hypothesis_text else ""
-        in_progress_html = f"{separator}{hypothesis_text}".replace("\n", "<br>")
-
-        # Combine into final HTML.  The hypothesis/in-progress portion is grey so it
-        # visually contrasts with the settled text.
-        final_html = (
-            f"<span>{settled_html}</span>"
-            f"<span style='color: gray;'>{in_progress_html}</span>"
-        )
-
-        # Write to the QTextEdit using setHtml so that the styling is applied.
-        self.user_speech_display.setHtml(final_html)
-
-        # Ensure the latest text is visible by scrolling to the bottom.
-        self.user_speech_display.verticalScrollBar().setValue(
-            self.user_speech_display.verticalScrollBar().maximum()
-        )
+        self.user_speech_widget.update_display(hypothesis_text)
 
     def _handle_final_chunk(self, chunk_text: str):
         """
@@ -385,11 +280,8 @@ class MainWindow(QMainWindow):
         Updates the settled text state and triggers the LLMController.
         """
         self.app_logger.debug(f"MainWindow received final chunk: {chunk_text[:80]}...")
-        # Append finalized chunk to settled text
-        self.settled_user_text += chunk_text + "\n\n" # Add double newline for separation
-        # Update the display immediately to show the settled text (without hypothesis)
-        self.update_user_speech_pane("")
-        # Now trigger the LLM processing
+        self.user_speech_widget.append_settled_chunk(chunk_text)
+        # Trigger LLM processing
         self.llm_controller.process_final_chunk(chunk_text)
 
     def handle_llm_response(self, response_markdown: str):
@@ -401,7 +293,7 @@ class MainWindow(QMainWindow):
         self.conv_logger.info(json.dumps(assistant_log_entry))
 
         # Render in the left-hand web view
-        self.append_markdown_output(response_markdown)
+        self.output_widget.append_html(markdown_to_html_fragment(response_markdown))
 
         # Once the response is processed, the LLM controller will emit processing_finished
         # which re-enables DM buttons via _on_llm_processing_finished.
@@ -411,7 +303,7 @@ class MainWindow(QMainWindow):
         self.app_logger.error(f"MainWindow received error signal: {message}")
         # Simple status bar message for now
         self.statusBar().showMessage(f"Error: {message}", 10000) # Show for 10 seconds
-        # Re-enable DM actions after error display?
+        # Re-enable DM actions after error
         self._set_dm_actions_enabled(True) # Re-enable actions after error
         # TODO: Consider using QMessageBox for critical errors like missing API keys/prompts
         # if "API Key not found" in message or "prompt file not found" in message:
@@ -425,7 +317,7 @@ class MainWindow(QMainWindow):
         show = state == Qt.Checked
         # --- Adjust splitter visibility instead of just the widget ---
         # Find the index of the user speech display in the splitter
-        user_speech_widget = self.user_speech_display
+        user_speech_widget = self.user_speech_widget
         splitter_index = -1
         for i in range(self.splitter.count()):
             if self.splitter.widget(i) == user_speech_widget:
@@ -450,9 +342,9 @@ class MainWindow(QMainWindow):
                      new_sizes[other_index] = other_width
                      self.splitter.setSizes(new_sizes)
                 elif sum(current_sizes) == 0: # If splitter somehow has 0 size
-                    self.splitter.setSizes([600, 400]) # Fallback to default
+                    self.splitter.setSizes([500, 500]) # Fallback to default even split
 
-                self.user_speech_display.setVisible(True) # Ensure widget is visible
+                self.user_speech_widget.set_visibility(True) # Ensure widget is visible
             else:
                 # Hide by setting size to 0
                 current_sizes = self.splitter.sizes()
@@ -464,7 +356,7 @@ class MainWindow(QMainWindow):
                     other_index = 1 - splitter_index
                     new_sizes[other_index] = total_width
                     self.splitter.setSizes(new_sizes)
-                self.user_speech_display.setVisible(False) # Also hide widget just in case
+                self.user_speech_widget.set_visibility(False) # Also hide widget just in case
 
         # Original logic for config saving
         self.config.set("ui_settings.show_user_speech", show)
@@ -482,26 +374,25 @@ class MainWindow(QMainWindow):
         self.audio_controller.set_audio_source(selected_source, is_running)
 
     # ---------------------------------------------------------------------
-    # Helper for rendering markdown into the QWebEngineView
+    # New handlers for high-level signals
     # ---------------------------------------------------------------------
-    def append_markdown_output(self, md_text: str):
-        """Converts markdown to HTML fragment and appends it to the web view."""
-        html_fragment = markdown_to_html_fragment(md_text)
+    def _on_audio_action_request(self, action: str):  # noqa: D401
+        if action == "start":
+            self.transcription_controller.start_transcription()
+        elif action == "stop":
+            self.transcription_controller.stop_transcription()
+        elif action.startswith("source:"):
+            source = action.split(":", 1)[1]
+            self._on_audio_source_changed(source)
 
-        # Encode as JSON string so it can be safely injected via JavaScript
-        safe_html_fragment = json.dumps(html_fragment)
+    def _on_dm_action_request(self, prompt_filename: str, params: dict):  # noqa: D401
+        self.llm_controller.pc_level = params.get("pc_level", self.llm_controller.pc_level)
+        self.llm_controller.action_quantity = params.get("quantity", self.llm_controller.action_quantity)
+        self.llm_controller.trigger_dm_action(prompt_filename)
 
-        script = f"""
-        var body = document.body;
-        var newContent = document.createElement('div');
-        newContent.innerHTML = {safe_html_fragment};
-        while (newContent.firstChild) {{
-            body.appendChild(newContent.firstChild);
-        }}
-        window.scrollTo(0, document.body.scrollHeight);
-        """
-
-        self.output_display.page().runJavaScript(script)
+    def _on_llm_params_changed(self, params: dict):  # noqa: D401
+        self.llm_controller.pc_level = params.get("pc_level", self.llm_controller.pc_level)
+        self.llm_controller.action_quantity = params.get("quantity", self.llm_controller.action_quantity)
 
 # --- Main Execution --- (Entry point) - REMOVED
 # def main(): ...

@@ -265,3 +265,10 @@
 }
 
 /* --- End Adapted statblock5e Styles --- */
+
+/* Ensure existence of background for LLM log */
+.log-body {
+    background-color: #fdf6e3; /* solarized light paper-like */
+    background-image: url('../assets/paper_texture.png');
+    background-size: cover;
+}

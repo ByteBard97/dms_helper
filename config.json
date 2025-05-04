@@ -28,8 +28,8 @@
         "input_source": "Microphone"
     },
     "dm_actions": {
-        "default_pc_level": 20,
-        "default_quantity": 4
+        "default_pc_level": 1,
+        "default_quantity": 1
     },
     "transcription": {
         "min_sentences": 5
