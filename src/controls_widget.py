@@ -61,7 +61,12 @@ class ControlsWidget(QWidget):
         audio_row = QHBoxLayout()
         self.audio_source_label = QLabel("Audio Source:")
         self.audio_source_combobox = QComboBox()
+        # Populate and set initial selection based on config
         self.audio_source_combobox.addItems(["File", "Microphone"])
+        initial_source = self.config.get("audio_settings.input_source", "File")
+        index = self.audio_source_combobox.findText(initial_source)
+        if index != -1:
+            self.audio_source_combobox.setCurrentIndex(index)
         self.start_button = QPushButton("Start Listening")
         self.stop_button = QPushButton("Stop Listening")
         self.stop_button.setEnabled(False)
