@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+import json
 
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
@@ -106,16 +107,16 @@ class LLMOutputWidget(QWebEngineView):
         """
         script = (
             """
-            (function() {
+            (function() {{
               var body = document.body;
               var existing = document.getElementById('stream_' + {sid});
-              if (!existing) {
+              if (!existing) {{
                 var container = document.createElement('div');
                 container.id = 'stream_' + {sid};
                 body.appendChild(container);
-              }
+              }}
               window.scrollTo(0, document.body.scrollHeight);
-            })();
+            }})();
             """
         ).format(sid=_js_str(stream_id))
         self.page().runJavaScript(script)
@@ -126,16 +127,16 @@ class LLMOutputWidget(QWebEngineView):
         safe_chunk = json_dumps(html_chunk)
         script = (
             """
-            (function() {
+            (function() {{
               var container = document.getElementById('stream_' + {sid});
-              if (!container) {
+              if (!container) {{
                 container = document.createElement('div');
                 container.id = 'stream_' + {sid};
                 document.body.appendChild(container);
-              }
+              }}
               container.insertAdjacentHTML('beforeend', {chunk});
               window.scrollTo(0, document.body.scrollHeight);
-            })();
+            }})();
             """
         ).format(sid=_js_str(stream_id), chunk=safe_chunk)
         self.page().runJavaScript(script)
@@ -150,17 +151,17 @@ class LLMOutputWidget(QWebEngineView):
         safe_final = json_dumps(final_html)
         script = (
             """
-            (function() {
+            (function() {{
               var container = document.getElementById('stream_' + {sid});
-              if (!container) {
+              if (!container) {{
                  container = document.createElement('div');
                  container.id = 'stream_' + {sid};
                  document.body.appendChild(container);
-              }
+              }}
               container.innerHTML = '';
               container.insertAdjacentHTML('beforeend', {html});
               window.scrollTo(0, document.body.scrollHeight);
-            })();
+            }})();
             """
         ).format(sid=_js_str(stream_id), html=safe_final)
         self.page().runJavaScript(script)

@@ -5,6 +5,8 @@ import os
 import sys
 from pathlib import Path
 from typing import List, Dict, Any
+import uuid
+from markdown_utils import markdown_to_html_fragment
 
 from PyQt5.QtCore import QObject, pyqtSignal
 from dotenv import load_dotenv
@@ -29,6 +31,13 @@ class LLMController(QObject):
     processing_finished = pyqtSignal()
     # Emitted on critical error during LLM setup or processing
     llm_error = pyqtSignal(str)
+    # --- New Streaming Signals ---
+    # Unique stream ID for each response
+    stream_started = pyqtSignal(str)
+    # Emits (stream_id, html_chunk)
+    response_chunk_received = pyqtSignal(str, str)
+    # Emits (stream_id, final_html)
+    stream_finished = pyqtSignal(str, str)
 
     def __init__(self, config_manager: ConfigManager, parent=None):
         """
@@ -296,45 +305,60 @@ class LLMController(QObject):
             # Log warning but continue if history access fails
             self.app_logger.warning(f"Could not determine chat history length: {e}")
 
+        # Generate a unique stream ID for this request
+        stream_id = uuid.uuid4().hex[:8]
+
         # --- Worker Thread --- 
         worker_thread = threading.Thread(
             target=self._llm_worker_func,
-            args=(formatted_prompt,),
+            args=(formatted_prompt, stream_id),
             daemon=True
         )
         worker_thread.start()
 
     # --- LLM Worker Function --- 
-    def _llm_worker_func(self, prompt_to_send: str):
-        """Worker function to interact with the LLM API."""
-        response_text = "Error: LLM call failed."
-        # No outer try/except block per rules
+    def _llm_worker_func(self, prompt_to_send: str, stream_id: str):
+        """Worker function to interact with the LLM API in *streaming* mode."""
+        self.app_logger.info(f"LLM Worker [{stream_id}]: Sending formatted prompt (streaming)...")
 
-        self.app_logger.info(f"LLM Worker: Sending formatted prompt...")
-        # Critical API call - let errors propagate naturally
-        gemini_response = self.chat_session.send_message(prompt_to_send)
+        # Emit stream_started BEFORE the first chunk arrives so the UI can prepare.
+        self.stream_started.emit(stream_id)
 
-        if hasattr(gemini_response, 'text'):
-            response_text = gemini_response.text
-            self.app_logger.info(f"LLM Worker: Received response text (length: {len(response_text)}).")
-        else:
-            error_msg = f"Unexpected LLM response format: {type(gemini_response)}"
-            response_text = f"Error: {error_msg}"
-            self.app_logger.error(f"LLM Worker: Error - {error_msg}")
-            # Consider emitting llm_error here if format is critical
+        # Critical API call – allow natural exception propagation (no try/except)
+        gemini_stream = self.chat_session.send_message(prompt_to_send, stream=True)
 
-        # --- Log Assistant Response --- 
-        assistant_log_entry = {"role": "ASSISTANT", "content": response_text}
+        accumulated_markdown = ""
+        for chunk in gemini_stream:
+            if not hasattr(chunk, "text"):
+                self.app_logger.warning(
+                    f"LLM Worker [{stream_id}]: Received non-text chunk of type {type(chunk)}; skipping."
+                )
+                continue
+            chunk_text: str = chunk.text
+            accumulated_markdown += chunk_text
+            # Convert streaming chunk markdown to HTML fragment for immediate display
+            html_fragment = markdown_to_html_fragment(chunk_text)
+            # Emit chunk to UI
+            self.response_chunk_received.emit(stream_id, html_fragment)
+
+        # After streaming completes, convert full markdown to HTML
+        final_html = markdown_to_html_fragment(accumulated_markdown)
+        self.stream_finished.emit(stream_id, final_html)
+
+        # --- Log Assistant Response ---
+        assistant_log_entry = {"role": "ASSISTANT", "content": accumulated_markdown}
         log_line = json.dumps(assistant_log_entry)
         self.conv_logger.info(log_line)
-        self.app_logger.info(f"Logged ASSISTANT response (len: {len(response_text)}) to conversation log.")
-        # ------------------------------
+        self.app_logger.info(
+            f"Logged ASSISTANT response for stream {stream_id} (len: {len(accumulated_markdown)})."
+        )
 
-        # --- Emit signal & Update State --- 
-        self.app_logger.info(f"LLM Worker: Emitting response signal...")
-        self.response_received.emit(response_text)
+        # Note: We deliberately do NOT emit the legacy response_received signal to avoid
+        # duplicate rendering; the streaming signals already handled UI updates.
+
+        # --- Update State ---
         self.is_processing = False
-        self.processing_finished.emit() # Signal processing end
+        self.processing_finished.emit()  # Signal processing end
 
     # --- DM Action Triggering --- (Public method called by MainWindow/UI)
     def trigger_dm_action(self, prompt_filename: str):

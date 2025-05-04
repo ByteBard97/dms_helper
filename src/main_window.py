@@ -181,6 +181,10 @@ class MainWindow(QMainWindow):
         # LLM Controller -> UI Updates
         self.llm_controller.response_received.connect(self.handle_llm_response)
         self.llm_controller.llm_error.connect(self._show_error_message)
+        # --- Streaming connections ---
+        self.llm_controller.stream_started.connect(self.output_widget.handle_stream_started)
+        self.llm_controller.response_chunk_received.connect(self.output_widget.handle_response_chunk_received)
+        self.llm_controller.stream_finished.connect(self.output_widget.handle_stream_finished)
 
         # 7.  DM action parameter spinboxes → LLMController properties
         self.pc_level_spinbox.valueChanged.connect(
