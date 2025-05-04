@@ -1,69 +1,100 @@
 # D&D Helper Project Overview
 
-This document provides a guide to the main files and structure of the D&D Helper project, intended to help developers understand the components after time away.
+This document explains the high-level architecture, key modules, and directory layout of the **D&D Helper** project as of the latest refactor (Task #29 – modular widgets).
 
+---
 ## Goal
+The application listens to a Dungeon Master's speech, transcribes it in near real-time via **Whisper Live**, then leverages **Ollama** (gatekeeper) and **Google Gemini** to generate context-aware suggestions that are rendered in a PyQt-based GUI.
 
-The application listens to a Dungeon Master's voice, transcribes it in near real-time using Whisper, and uses Large Language Models (Ollama Gatekeeper + Cloud LLM like Gemini) to provide context-aware suggestions and assistance during gameplay.
-
+---
 ## How to Run
+1. Start the external servers (see `SETUP_GUIDE.md`)
+   • Whisper Live (Docker)
+   • Ollama (gatekeeper model pulled)
+2. Activate the virtual environment: `venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (POSIX).
+3. Launch the GUI: `python src/dms_gui.py`  
+   `run_dms_helper.bat` can be used as a one-click helper.
 
-The primary way to launch the application is via the GUI:
+> **Why `dms_gui.py`?**  The entry-point simply initialises logging & palette then instantiates **`MainWindow`**.  Keeping the bootstrap tiny allows the heavy logic to live inside the main modules which are hot-reloaded more often during development.
 
-1.  Ensure the external Whisper and Ollama servers are running (see `SETUP_GUIDE.md`).
-2.  Ensure the Python virtual environment (`.venv`) is activated.
-3.  Run the GUI entry point: `python src/dms_gui.py`
-4.  Alternatively, use the `run_dms_helper.bat` script, which activates the environment and runs `src/dms_gui.py`.
+---
+## Current Architecture Overview
+```
+┌─────────────┐   streamed chunks   ┌────────────────────┐
+│ WhisperLive │ ───────────────▶   │ TranscriptAccumulator │
+└─────────────┘                    └────────────┬───────┘
+                                                │ finalised sentence
+                                                ▼
+                                           ┌──────────────┐
+                                           │  LLMChain    │
+                                           │ (Gatekeeper +│
+                                           │   Gemini)    │
+                                           └────────┬─────┘
+                                                    │ markdown
+                                                    ▼
+                                           ┌─────────────────┐
+                                           │ LLMOutputWidget │
+                                           └─────────────────┘
+```
+*Speech → Transcription → Accumulation → Gatekeeper check → Gemini prompt → Streaming markdown → GUI*
 
-## Core Application Files (GUI Workflow)
+---
+## Core GUI Files
+| Path | Purpose |
+|------|---------|
+| **`src/dms_gui.py`** | Entry-point: sets dark theme, initialises `LogManager`, shows `MainWindow`. |
+| **`src/main_window.py`** | Orchestrator: glues controllers ↔ widgets, routes high-level signals, owns the top-level splitter. |
+| **`src/llm_output_widget.py`** | `LLMOutputWidget(QWebEngineView)`. Renders assistant messages, supports streaming via JS injection, loads `templates/chat_template.html.tpl`. |
+| **`src/user_speech_widget.py`** | `UserSpeechWidget(QTextEdit)`. Shows settled & hypothesis transcription with configurable font size / visibility toggle. |
+| **`src/controls_widget.py`** | Bottom control bar. Groups audio/transcription/LLM param controls, DM-action panel, and manual prompt entry (`DMInputWidget`). Exposes high-level signals so `MainWindow` doesn't need to know about individual buttons. |
+| **`src/dm_input_widget.py`** | Single-line prompt entry used inside `ControlsWidget` for ad-hoc DM commands. |
+| **`src/dm_action_panel.py`** | Grid of quick-access buttons for common DM actions (treasure, NPC dialogue, etc.). |
 
-*   **`src/dms_gui.py`**: The main entry point for the GUI application. It initializes the PyQt5 application, sets the style/palette, initializes the `LogManager`, and creates/shows the `MainWindow`.
-*   **`src/main_window.py`**: Contains the `MainWindow` class (inherits from `QMainWindow`). This is the largest and most central file for the GUI. It defines the UI layout (using `QWebEngineView` for LLM output, `QTextEdit` for user speech, buttons, etc.), connects UI elements to functions (signals/slots), manages application state (like transcription status, audio source), initializes and interacts with backend components (ConfigManager, LLM, TranscriptionClient, Accumulator), and orchestrates the flow of data between transcription, processing, LLM calls, and UI updates.
-*   **`src/config_manager.py`**: Defines the `ConfigManager` class. Responsible for loading settings from `config.json`, providing default values if the file or keys are missing, and saving updated settings back to `config.json`. Used by `MainWindow` and `LogManager`.
-*   **`config.json`**: Stores application configuration settings like model names, server addresses, file paths, UI preferences, and the last audio playback position (`audio_settings.last_playback_position`).
+### Controllers / Back-end Helpers
+| Path | Description |
+|------|-------------|
+| **`src/llm_controller.py`** | Handles Gatekeeper → Gemini workflow, including *streaming* support (Task #28). Emits `stream_started`, `response_chunk_received`, `stream_finished`, plus `processing_started/finished`. |
+| **`src/transcription_controller.py`** | Wraps Whisper client & accumulator, exposes signals for hypothesis/final text. |
+| **`src/audio_controller.py`** | Manages audio source selection (file vs. mic) & persists choice in `config.json`. |
+| **`src/log_manager.py`** | Centralised logging setup; creates structured log files per run. |
+| **`src/config_manager.py`** | Reads/writes **`config.json`**, provides typed getters/setters. |
 
-## Supporting Modules
+### Utilities & Support
+* `src/context_loader.py` – Combines campaign context files for LLM prompts.  
+* `src/markdown_utils.py` – Converts markdown → HTML (with `css/dnd_style.css`).
+* `src/templates/chat_template.html.tpl` – Base HTML shell loaded by `LLMOutputWidget`.
 
-*   **`src/log_manager.py`**: Provides a centralized way to configure and access different loggers (application events, conversation history, raw transcript). Reads logging configuration potentially from `config.json`.
-*   **`src/whisper_live_client/`**: Directory containing the WebSocket client for interacting with the WhisperLive transcription server.
-    *   `client.py`: Defines `Client` (base WebSocket handler) and `TranscriptionClient` (wraps `Client`, handles audio playback from file or microphone input via PyAudio, manages the connection, and puts received transcript segments onto a queue).
-    *   `utils.py`: Helper functions specifically for the `whisper_live_client`.
-*   **`src/transcript_accumulator.py`**: Defines the `TranscriptAccumulator` class. Takes raw transcript segments (received from the transcription client via a queue), buffers them, and uses logic (like sentence detection via NLTK) to determine when a complete, coherent chunk of speech is ready for processing by the LLMs.
-*   **`src/context_loader.py`**: Contains functions to load and combine context from various source files (specified in a campaign JSON file) for the main LLM. Uses `markdown_utils` for processing.
-*   **`src/markdown_utils.py`**: Provides functions to convert Markdown text (received from the LLM) into HTML fragments suitable for display in the `QWebEngineView`. Also includes the base CSS (`DND_CSS`) used for styling the output.
+---
+## Key Data / Config Directories
+| Dir | Contents |
+|-----|----------|
+| **`source_materials/`** | Campaign-specific context files and reference audio. |
+| **`prompts/`** | Markdown prompt templates for Gatekeeper / Gemini. |
+| **`logs/`** | Runtime logs; archived per session in `logs/archive/`. |
+| **`css/`** | `dnd_style.css` – global D&D-flavoured styling. |
+| **`tasks/`** | Taskmaster task files (`task_###.txt`, `tasks.json`). |
 
-## Configuration & Data Files/Folders
+---
+## External Services
+* **Whisper Live** – Docker container for low-latency transcription.
+* **Ollama** – Hosts the Gatekeeper model (e.g., `mistral`).
+* **Google Gemini** – Cloud LLM for creative responses.
 
-*   **`source_materials/`**: Contains subdirectories for different campaigns (e.g., `wednesday/`). Each campaign directory holds the context files (`.txt`, `.md`) for that campaign (adventure text, PC info, summaries) and a JSON file (e.g., `wednesday_campaign.json`) defining which context files belong to the campaign. Also contains the main audio recording file (`recording_of_dm_resampled.wav`).
-*   **`logs/`**: Default directory where detailed log files are stored for each run (e.g., `raw_transcript_*.log`, `gemini_context_*.log`, `combined_session_*.log`). Contains an `archive/` subdirectory where logs from previous runs are moved.
-*   **`prompts/`**: Stores the text files used as templates for prompting the LLMs (e.g., `dm_assistant_prompt.md`, `gatekeeper_prompt.md`).
-*   **`css/`**: Contains CSS files (`dnd_style.css`) used to style the HTML rendered in the `QWebEngineView`.
+API keys are loaded from `.env` (see `requirements.md`).
 
-## Archived Scripts (`src/_archive/`)
+---
+## Recent Refactors (Task #29)
+* Split giant `MainWindow` logic into **three reusable widgets** listed above.
+* Moved inline HTML to `src/templates/chat_template.html.tpl` and styled via CSS.
+* Added `ControlsWidget.set_controls_enabled` helper for centralised enable/disable logic.
+* Audio source combo box now initialises from config to preserve *File* playback choice.
+* Added configurable font size for transcription pane (`ui_settings.speech_font_size`).
+* Legacy code preserved under `src/old/` for reference.
 
-These scripts are not part of the main GUI application flow but are kept for reference or potential future use.
+---
+## Planned / Pending Work
+* **Task #28 – Streaming Gemini Output** (in progress): leverage the new streaming signals in `LLMController` and dynamic DOM updates in `LLMOutputWidget` for real-time token display.
+* Bottom control layout fine-tuning to align with the design spec (left column + 50%-width prompt under speech pane).
 
-*   **`dms_assistant.py`**: A standalone, console-based version of the application core logic. It connects to transcription, loads context, interacts with LLMs, but outputs to the console/logs instead of a GUI. Likely an earlier version or backend test script.
-*   **`convert_adventure_pdf.py`**: Utility script likely used to convert PDF adventure modules into Markdown format using the `marker-pdf` library, preparing them as context for the LLM.
-*   **`render_md_to_pdf.py`**: Utility script, purpose less clear, possibly for converting Markdown back to PDF.
-*   **`llm_test.py`**: Script likely used for directly testing API calls to the LLM services (Gemini, Ollama) independent of the main application flow.
-*   **`main.py`**: Original purpose unknown, possibly an older entry point or test script before `dms_gui.py` was established.
-
-## External Dependencies / Setup
-
-*   **WhisperLive Server**: Requires a running instance of the WhisperLive Docker container (GPU recommended). See `SETUP_GUIDE.md`.
-*   **Ollama Server**: Requires a running Ollama server (ideally on LAN) with the specified gatekeeper model (e.g., `mistral:latest`) pulled and configured for network access. See `SETUP_GUIDE.md`.
-*   **API Keys**: Requires a Google API key for Gemini, configured via a `.env` file in the project root (`GOOGLE_API_KEY=...`).
-
-## Future Plans
-
-*   **GUI File Conversion**: Implement functionality within the GUI (`MainWindow`) to allow users to drag and drop files (starting with PDFs, potentially others like `.txt`, `.md`) directly onto the application. These files should then be processed/converted (e.g., PDF to Markdown using logic potentially adapted from `src/_archive/convert_adventure_pdf.py`) and added to the LLM's context for the current session.
-
-## Other Important Files
-
-*   **`run_dms_helper.bat`**: Batch script to conveniently activate the virtual environment and run the main GUI application (`src/dms_gui.py`).
-*   **`requirements.txt`**: Lists the Python package dependencies required for the project. Install using `pip install -r requirements.txt`.
-*   **`.env`**: (Not committed to Git) Stores sensitive API keys (like `GOOGLE_API_KEY`).
-*   **`README.md`**: General project description, setup, and usage instructions (may need updating to reflect the GUI focus).
-*   **`SETUP_GUIDE.md`**: Detailed instructions for setting up the external Whisper and Ollama servers.
-*   **`checklist.md` / `requirements.md` / `handoff.md`**: Project planning and status tracking documents. 
+---
+*Last updated: {{DATE}} 
