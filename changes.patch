@@ -1,0 +1,600 @@
+﻿diff --git a/config.json b/config.json
+index 8192e1f..7ec539d 100644
+--- a/config.json
++++ b/config.json
+@@ -24,7 +24,7 @@
+         "last_audio_position_sec": 0.0
+     },
+     "audio_settings": {
+-        "last_playback_position": 0.0,
++        "last_playback_position": 443.136,
+         "input_source": "File"
+     },
+     "dm_actions": {
+diff --git a/output.srt b/output.srt
+index 5653a4d..d60de1f 100644
+--- a/output.srt
++++ b/output.srt
+@@ -1,32 +1,396 @@
+ 1
+-01:25:00,000 --> 01:25:09,939
+- From stealth, boosted by Astraeus' inspiration, it struck the leader before ricocheting with devastating force, tearing through his guards and even searing the fire snake.
++00:00:05,330 --> 00:00:08,169
++ Yes, I can hear you, Jake.
+ 
+ 2
+-01:25:10,619 --> 01:25:14,199
+- Delphi, your lightning erupted, blasting the remaining foes.
++00:00:09,980 --> 00:00:16,739
++ yeah you're fine jake um if you guys had the ability to like speak into the microphone more
+ 
+ 3
+-01:25:14,199 --> 01:25:21,760
+- The firewalker leader vanished into the jungle, the pterosaur fled in terror, and the skirmish ended before it began.
++00:00:16,739 --> 00:00:18,280
++ for me, that would be amazing.
+ 
+ 4
+-01:58:32,609 --> 01:58:36,850
+- um the guards are walking back and forth so don't take them as being
++00:00:25,710 --> 00:00:28,210
++ All right, heroes, gather round and listen well.
+ 
+ 5
+-02:23:53,659 --> 02:23:55,819
+- It's under the folder random.
++00:00:28,210 --> 00:00:34,530
++ When we last left off, the legendary Ultros had escaped the spectral clutches of the Dead Falls,
+ 
+ 6
+-02:52:00,000 --> 02:52:30,100
+- think both of those miss okay i think that's the first time you've ever used that thing
++00:00:35,049 --> 00:00:38,170
++ carrying you into the gleaming expanse of the Cerulean Gulf.
+ 
+ 7
+-02:52:30,100 --> 02:52:39,440
+- that is a miss sorry to hear holy crap snake eyes is that it for reena i think that's
++00:00:38,570 --> 00:00:46,490
++ Fresh from Mitros, armed with Queen Valis' wisdom and the guidance of the Antikythera, set to the Constellation of the Prisoner.
+ 
+ 8
+-02:52:40,440 --> 02:52:41,959
+- like this
++00:00:46,570 --> 00:00:53,189
++ You've charted a course for the volatile shores of Fire Island, seeking a lost brass dragon egg.
++
++9
++00:00:53,490 --> 00:00:54,929
++ The voyage began.
++
++10
++00:00:54,929 --> 00:01:00,030
++ Delphi, you diligently scribe scrolls, preparing arcane power for challenges ahead.
++
++11
++00:01:24,409 --> 00:01:30,349
++ Midway to your destination, a lush, uncharted island rose from the waves.
++
++12
++00:01:30,810 --> 00:01:33,489
++ Jezerat Zul'haf, the island of the turtle.
++
++13
++00:01:34,170 --> 00:01:38,530
++ Taking Kyra and the robo to shore, you discovered a place unlike any other.
++
++14
++00:01:38,530 --> 00:01:42,189
++ Its very stones felt warm, hinting at something ancient.
++
++15
++00:01:42,269 --> 00:01:50,769
++ You found vessels moored, including imposing ships bearing the wolf emblem of Aresia, and inhabitants both strange and intriguing.
++
++16
++00:01:51,689 --> 00:01:54,950
++ You ventured into a sacred shine bathed in cyan light,
++
++17
++00:01:55,090 --> 00:01:57,670
++ meeting Malon, the ancient trident guardian.
++
++18
++00:01:57,670 --> 00:02:00,810
++ He revealed the island's incredible secret.
++
++19
++00:02:00,810 --> 00:02:08,330
++ It lives! A colossal turtle, a moving sanctuary, offering respite from the nightmares woven by Lutheria herself.
++
++20
++00:02:09,310 --> 00:02:15,490
++ Next, the opulent trading post drew you in where a magnificent blue-skinned marid, Shazam,
++
++21
++00:02:15,490 --> 00:02:18,169
++ welcomed you with booming hospitality.
++
++22
++00:02:18,169 --> 00:02:20,509
++ he confirmed the island's nature
++
++23
++00:02:20,509 --> 00:02:21,349
++ and how it
++
++24
++00:02:21,490 --> 00:02:23,449
++ out to find it again via the
++
++25
++00:02:23,449 --> 00:02:25,469
++ turtle star, offering it as a
++
++26
++00:02:25,469 --> 00:02:27,569
++ potential hub between your voyages
++
++27
++00:02:28,430 --> 00:02:32,530
++ While his magical stop was slim this visit, he presented a crucial quest.
++
++28
++00:02:32,770 --> 00:02:40,870
++ Retrieve fire snake eggs from Fire Island, offering rare treasures like star metal or mithril in return.
++
++29
++00:02:40,870 --> 00:02:48,990
++ He also shared cryptic rumors of flying musicians and a dragon riding commander on Yonder, the Isle of Yonder.
++
++30
++00:02:48,990 --> 00:02:50,990
++ Your exploration continued.
++
++31
++00:02:50,990 --> 00:02:53,229
++ you encountered disciplined
++
++32
++00:02:53,229 --> 00:02:55,389
++ Ariesian warrior monks led by Captain
++
++33
++00:02:55,389 --> 00:02:57,530
++ Galenus, seeking their own rare
++
++34
++00:02:57,530 --> 00:02:59,729
++ goods and sharing whispers of trouble and
++
++35
++00:02:59,729 --> 00:03:07,250
++ Themis. You met the enigmatic sea elves Lysandra and Kallir, charting strange shifts in the ocean
++
++36
++00:03:07,250 --> 00:03:10,610
++ currents and asking for your aid in observing these anomalies.
++
++37
++00:03:11,330 --> 00:03:16,449
++ Finally, at the Floating Lantern Inn, the proprietor Lyra served you a peculiar Tide Whisperer brew,
++
++38
++00:03:16,449 --> 00:03:18,610
++ granting fleeting understanding of
++
++39
++00:03:18,610 --> 00:03:20,430
++ Aquan and strange ocean
++
++40
++00:03:20,430 --> 00:03:22,530
++ whispers. Before you rested
++
++41
++00:03:22,530 --> 00:03:24,530
++ soundly shielded from Lotharia's
++
++42
++00:03:24,530 --> 00:03:26,310
++ grasp, waking refreshed
++
++43
++00:03:26,310 --> 00:03:28,389
++ with temporary hit points and psychic
++
++44
++00:03:28,389 --> 00:03:30,650
++ resistance. Leaving the island
++
++45
++00:03:30,650 --> 00:03:32,689
++ behind, the Ultros finally brought you
++
++46
++00:03:32,689 --> 00:03:34,310
++ to the shores of Fire Island,
++
++47
++00:03:34,310 --> 00:03:38,710
++ The air hung thick with sulfur, and the jungle pulsed with unseen life.
++
++48
++00:03:38,819 --> 00:03:43,719
++ No sooner had your boots hit the dark volcanic sand than you were met by Sesseth,
++
++49
++00:03:43,860 --> 00:03:48,439
++ A shaman of the Bloodscale tribe, who strangely seemed to expect you.
++
++50
++00:03:49,120 --> 00:03:55,340
++ He led you into the humid jungle, a challenging trek for most, though Aella, you move with practiced ease.
++
++51
++00:03:55,340 --> 00:03:57,099
++ suddenly danger
++
++52
++00:03:57,099 --> 00:03:59,520
++ you discovered Fire Snake Warriors
++
++53
++00:03:59,520 --> 00:04:03,840
++ menacing a bound blue-scaled lizard folk,
++
++54
++00:04:03,840 --> 00:04:06,120
++ Scythra, the Keeper of Histories.
++
++55
++00:04:06,120 --> 00:04:12,020
++ A deadly fire snake circled her, its heat scorching the earth, while overhead a winged
++
++56
++00:04:12,020 --> 00:04:13,500
++ pterosaur kept watch.
++
++57
++00:04:13,870 --> 00:04:16,550
++ Sethith pleaded for help.
++
++58
++00:04:16,550 --> 00:04:19,170
++ Aayla, you cloak the party in shadow with
++
++59
++00:04:19,170 --> 00:04:21,509
++ pass without trace. Delphi
++
++60
++00:04:21,509 --> 00:04:23,670
++ you invoked Bless upon your allies,
++
++61
++00:04:23,670 --> 00:04:29,089
++ Then the ambush sprung, Aella, you enchanted chakram, became a whirlwind of mithril death.
++
++62
++00:04:29,230 --> 00:04:34,410
++ Launched from stealth, boosted by Astraeus' inspiration, it struck the leader before
++
++63
++00:04:34,410 --> 00:04:41,170
++ ricocheting with devastating force tearing through his guards and even searing the fire snake delphi
++
++64
++00:04:41,170 --> 00:04:43,170
++ your lightning erupted, blasting the
++
++65
++00:04:43,170 --> 00:04:45,329
++ remaining foes, the Firewalker
++
++66
++00:04:45,329 --> 00:04:46,949
++ leader vanished into the jungle.
++
++67
++00:04:46,949 --> 00:04:49,110
++ the pterosaur fled in terror
++
++68
++00:04:49,110 --> 00:04:51,750
++ and the skirmish ended before it began.
++
++69
++00:04:51,750 --> 00:04:54,310
++ Sithra was freed
++
++70
++00:04:54,310 --> 00:04:56,750
++ grateful she confirmed the firewalkers
++
++71
++00:04:56,750 --> 00:04:58,870
++ serve Sidon, hinted at the
++
++72
++00:04:58,870 --> 00:05:00,350
++ Grass dragon eggs fate.
++
++73
++00:05:00,350 --> 00:05:03,050
++ one hatched into the enemy king's pet
++
++74
++00:05:03,050 --> 00:05:05,009
++ and agreed to lead you to her
++
++75
++00:05:05,009 --> 00:05:07,149
++ queen. Another track brought
++
++76
++00:05:07,149 --> 00:05:08,709
++ you to the Bloodscale Village,
++
++77
++00:05:08,790 --> 00:05:12,430
++ a settlement built on stilts over swampy poles
++
++78
++00:05:12,430 --> 00:05:14,889
++ dominated by a Moessi ziggurat.
++
++79
++00:05:15,100 --> 00:05:19,079
++ There, upon a throne of bone and shell, sat Queen Vaitha.
++
++80
++00:05:19,079 --> 00:05:25,240
++ She welcomed you as prophesied heroes, confirming her struggle against the Sidon-allied King
++
++81
++00:05:25,240 --> 00:05:27,600
++ Jenkor, who holds the sacred
++
++82
++00:05:27,600 --> 00:05:29,620
++ volcano. She asks
++
++83
++00:05:29,620 --> 00:05:31,660
++ you for your aid offering knowledge
++
++84
++00:05:31,660 --> 00:05:32,639
++ of the dragon eggs
++
++85
++00:05:32,639 --> 00:05:33,720
++ in a secret path
++
++86
++00:05:33,720 --> 00:05:35,680
++ into Jhankar's fortress in return.
++
++87
++00:06:29,540 --> 00:06:34,220
++ and an unsettling cultural proposal that hangs heavy in the humid jungle air.
++
++88
++00:06:37,711 --> 00:06:42,012
++ All right, so you just met Queen Vaitha, and let me bring this on.
++
++89
++00:06:42,012 --> 00:06:43,851
++ I had to shrink the map so let me
++
++90
++00:06:43,851 --> 00:06:46,072
++ Let me go back to our map here.
++
++91
++00:06:46,072 --> 00:06:56,132
++ okay we're still on the map
++
++92
++00:06:56,182 --> 00:06:57,682
++ And I shrunk that down.
++
++93
++00:06:57,682 --> 00:06:59,502
++ so hopefully it doesn't crash your computer
++
++94
++00:06:59,502 --> 00:07:04,992
++ now you guys see the big
++
++95
++00:07:04,992 --> 00:07:08,112
++ ziggurat here and all
++
++96
++00:07:08,112 --> 00:07:08,932
++ the lizard folk
++
++97
++00:07:08,932 --> 00:07:10,132
++ standing around it.
++
++98
++00:07:10,271 --> 00:07:12,891
++ The queen has just told you this is the queen.
++
++99
++00:07:12,891 --> 00:07:14,492
++ Oh, let me pull up my images here.
+ 
+diff --git a/src/controls_widget.py b/src/controls_widget.py
+index e9ba157..b395417 100644
+--- a/src/controls_widget.py
++++ b/src/controls_widget.py
+@@ -16,11 +16,13 @@ from PyQt5.QtWidgets import (
+     QPushButton,
+     QSpinBox,
+     QCheckBox,
++    QSizePolicy,
+ )
+ from PyQt5.QtCore import pyqtSignal, Qt
+ 
+ from config_manager import ConfigManager
+ from dm_action_panel import DMActionPanel
++from dm_input_widget import DMInputWidget  # local import to avoid cycles
+ 
+ __all__ = ["ControlsWidget"]
+ 
+@@ -55,7 +57,15 @@ class ControlsWidget(QWidget):
+ 
+         # Left-hand audio/transcription controls.
+         left_layout = QVBoxLayout()
+-        root_layout.addLayout(left_layout)
++        # Give left and right columns equal stretch so they roughly split 50/50
++        root_layout.addLayout(left_layout, 1)
++
++        # Right-hand DM manual input widget
++        self.dm_input_widget = DMInputWidget()
++
++        # We'll create a container to hold the DM panel and prompt entry stacked
++        right_container = QVBoxLayout()
++        root_layout.addLayout(right_container, 1)
+ 
+         # Audio row.
+         audio_row = QHBoxLayout()
+@@ -95,11 +105,11 @@ class ControlsWidget(QWidget):
+         trans_row.addStretch(1)
+         left_layout.addLayout(trans_row)
+ 
+-        left_layout.addStretch(1)
+-
+         # Right-hand DM action panel.
+         self.dm_action_panel = DMActionPanel()
+-        root_layout.addWidget(self.dm_action_panel)
++        self.dm_action_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
++        right_container.addWidget(self.dm_input_widget)
++        right_container.addWidget(self.dm_action_panel)
+ 
+         # Expose DMActionPanel widgets directly for convenience during refactor
+         for _name in (
+@@ -116,6 +126,9 @@ class ControlsWidget(QWidget):
+         ):
+             setattr(self, _name, getattr(self.dm_action_panel, _name))
+ 
++        # Expose the custom prompt entry explicitly
++        self.custom_prompt_lineedit = self.dm_input_widget
++
+         # ------------------------------------------------------------------
+         # Signal wiring
+         # ------------------------------------------------------------------
+@@ -198,6 +211,7 @@ class ControlsWidget(QWidget):
+             self.show_user_speech_checkbox,
+             self.min_sentences_spinbox,
+             self.flush_button,
++            self.dm_input_widget,
+         ):
+             widget.setEnabled(enabled)
+ 
+diff --git a/src/llm_controller.py b/src/llm_controller.py
+index 5ec04ad..718d6bc 100644
+--- a/src/llm_controller.py
++++ b/src/llm_controller.py
+@@ -49,6 +49,7 @@ class LLMController(QObject):
+         self.gatekeeper_prompt_template = None
+         self.main_prompt_template = None
+         self.styling_guide_content = None
++        self.manual_prompt_template = None
+         self.is_processing = False
+ 
+         # DM Action Parameters (mirrored from MainWindow original)
+@@ -93,11 +94,13 @@ class LLMController(QObject):
+         main_prompt_path_str = self.config.get("paths.main_prompt", "prompts/dm_assistant_prompt.md")
+         campaign_config_path_str = self.config.get("paths.campaign_config", "source_materials/default_campaign.json")
+         style_guide_path_str = "prompts/markdown_styling_guide.md"
++        manual_prompt_path_str = "prompts/dm_manual_input_prompt.md"
+ 
+         gatekeeper_prompt_path = project_root / gatekeeper_prompt_path_str
+         main_prompt_path = project_root / main_prompt_path_str
+         campaign_config_path = project_root / campaign_config_path_str
+         style_guide_path = project_root / style_guide_path_str
++        manual_prompt_path = project_root / manual_prompt_path_str
+ 
+         # --- Load Prompts & Style Guide (CRITICAL - No try/except) ---
+         if main_prompt_path.is_file():
+@@ -128,6 +131,12 @@ class LLMController(QObject):
+             self.llm_error.emit(error_msg) # Emit error signal
+             return # Cannot proceed without style guide
+ 
++        if manual_prompt_path.is_file():
++            self.manual_prompt_template = manual_prompt_path.read_text(encoding="utf-8")
++            self.app_logger.info("Manual DM prompt template loaded.")
++        else:
++            self.app_logger.warning(f"Manual DM prompt template not found at {manual_prompt_path}. Manual queries disabled.")
++
+         # Initialize Ollama Client (Currently Skipped in original - keep logic)
+         # ollama_host = self.config.get("servers.ollama_host", "http://localhost:11434")
+         # self.ollama_client = ollama.Client(host=ollama_host)
+@@ -366,4 +375,15 @@ class LLMController(QObject):
+         # --------------------------------------
+ 
+         # Trigger internal request, marking it as a DM action
+-        self._trigger_llm_request_internal(formatted_action_prompt, is_dm_action=True) 
+\ No newline at end of file
++        self._trigger_llm_request_internal(formatted_action_prompt, is_dm_action=True)
++
++    # ------------------------------------------------------------------
++    # Public API for manual DM prompts
++    # ------------------------------------------------------------------
++    def process_manual_dm_prompt(self, raw_text: str) -> None:  # noqa: D401
++        """Wrap *raw_text* in the manual prompt template and send to LLM."""
++        if not self.manual_prompt_template:
++            self.app_logger.error("Manual prompt template not loaded; ignoring manual query.")
++            return
++        wrapped_prompt = self.manual_prompt_template.replace("{{DM_QUERY}}", raw_text)
++        self._trigger_llm_request_internal(wrapped_prompt, is_dm_action=False) 
+\ No newline at end of file
+diff --git a/src/main_window.py b/src/main_window.py
+index b9c0476..be30dd5 100644
+--- a/src/main_window.py
++++ b/src/main_window.py
+@@ -226,6 +226,9 @@ class MainWindow(QMainWindow):
+         cw.show_user_speech_toggled.connect(self.user_speech_widget.set_visibility)
+         cw.llm_params_changed.connect(self._on_llm_params_changed)
+ 
++        # Manual DM prompt submission
++        cw.dm_input_widget.prompt_submitted.connect(self._on_manual_dm_prompt)
++
+     def _on_transcription_started(self):
+         """Updates UI when transcription starts."""
+         self.app_logger.info("MainWindow: Transcription started signal received.")
+@@ -247,6 +250,8 @@ class MainWindow(QMainWindow):
+         self.app_logger.info("MainWindow: LLM processing started signal received.")
+         self._set_dm_actions_enabled(False)
+         self.statusBar().showMessage("LLM Processing...")
++        # Disable manual DM input widget
++        self.controls_widget.dm_input_widget.set_processing(True)
+ 
+     def _on_llm_processing_finished(self):
+         """Updates UI when LLM finishes."""
+@@ -256,6 +261,8 @@ class MainWindow(QMainWindow):
+         is_transcribing = self.transcription_controller.transcription_thread is not None and \
+                           self.transcription_controller.transcription_thread.is_alive()
+         self.statusBar().showMessage("Listening..." if is_transcribing else "Ready.")
++        # Re-enable manual DM input widget
++        self.controls_widget.dm_input_widget.set_processing(False)
+ 
+     def _set_dm_actions_enabled(self, enabled: bool):
+         # Delegate to ControlsWidget toggler
+@@ -394,6 +401,11 @@ class MainWindow(QMainWindow):
+         self.llm_controller.pc_level = params.get("pc_level", self.llm_controller.pc_level)
+         self.llm_controller.action_quantity = params.get("quantity", self.llm_controller.action_quantity)
+ 
++    def _on_manual_dm_prompt(self, prompt_text: str):
++        """Slot called when a manual DM prompt is submitted."""
++        self.app_logger.info("Manual DM prompt submitted.")
++        self.llm_controller.process_manual_dm_prompt(prompt_text)
++
+ # --- Main Execution --- (Entry point) - REMOVED
+ # def main(): ...
+ #

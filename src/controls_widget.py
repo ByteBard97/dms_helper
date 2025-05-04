@@ -16,11 +16,13 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSpinBox,
     QCheckBox,
+    QSizePolicy,
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 
 from config_manager import ConfigManager
 from dm_action_panel import DMActionPanel
+from dm_input_widget import DMInputWidget  # local import to avoid cycles
 
 __all__ = ["ControlsWidget"]
 
@@ -55,7 +57,15 @@ class ControlsWidget(QWidget):
 
         # Left-hand audio/transcription controls.
         left_layout = QVBoxLayout()
-        root_layout.addLayout(left_layout)
+        # Give left and right columns equal stretch so they roughly split 50/50
+        root_layout.addLayout(left_layout, 1)
+
+        # Right-hand DM manual input widget
+        self.dm_input_widget = DMInputWidget()
+
+        # We'll create a container to hold the DM panel and prompt entry stacked
+        right_container = QVBoxLayout()
+        root_layout.addLayout(right_container, 1)
 
         # Audio row.
         audio_row = QHBoxLayout()
@@ -95,11 +105,11 @@ class ControlsWidget(QWidget):
         trans_row.addStretch(1)
         left_layout.addLayout(trans_row)
 
-        left_layout.addStretch(1)
-
         # Right-hand DM action panel.
         self.dm_action_panel = DMActionPanel()
-        root_layout.addWidget(self.dm_action_panel)
+        self.dm_action_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        right_container.addWidget(self.dm_input_widget)
+        right_container.addWidget(self.dm_action_panel)
 
         # Expose DMActionPanel widgets directly for convenience during refactor
         for _name in (
@@ -115,6 +125,9 @@ class ControlsWidget(QWidget):
             "test_button",
         ):
             setattr(self, _name, getattr(self.dm_action_panel, _name))
+
+        # Expose the custom prompt entry explicitly
+        self.custom_prompt_lineedit = self.dm_input_widget
 
         # ------------------------------------------------------------------
         # Signal wiring
@@ -198,6 +211,7 @@ class ControlsWidget(QWidget):
             self.show_user_speech_checkbox,
             self.min_sentences_spinbox,
             self.flush_button,
+            self.dm_input_widget,
         ):
             widget.setEnabled(enabled)
 

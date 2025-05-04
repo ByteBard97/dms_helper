@@ -226,6 +226,9 @@ class MainWindow(QMainWindow):
         cw.show_user_speech_toggled.connect(self.user_speech_widget.set_visibility)
         cw.llm_params_changed.connect(self._on_llm_params_changed)
 
+        # Manual DM prompt submission
+        cw.dm_input_widget.prompt_submitted.connect(self._on_manual_dm_prompt)
+
     def _on_transcription_started(self):
         """Updates UI when transcription starts."""
         self.app_logger.info("MainWindow: Transcription started signal received.")
@@ -247,6 +250,8 @@ class MainWindow(QMainWindow):
         self.app_logger.info("MainWindow: LLM processing started signal received.")
         self._set_dm_actions_enabled(False)
         self.statusBar().showMessage("LLM Processing...")
+        # Disable manual DM input widget
+        self.controls_widget.dm_input_widget.set_processing(True)
 
     def _on_llm_processing_finished(self):
         """Updates UI when LLM finishes."""
@@ -256,6 +261,8 @@ class MainWindow(QMainWindow):
         is_transcribing = self.transcription_controller.transcription_thread is not None and \
                           self.transcription_controller.transcription_thread.is_alive()
         self.statusBar().showMessage("Listening..." if is_transcribing else "Ready.")
+        # Re-enable manual DM input widget
+        self.controls_widget.dm_input_widget.set_processing(False)
 
     def _set_dm_actions_enabled(self, enabled: bool):
         # Delegate to ControlsWidget toggler
@@ -393,6 +400,11 @@ class MainWindow(QMainWindow):
     def _on_llm_params_changed(self, params: dict):  # noqa: D401
         self.llm_controller.pc_level = params.get("pc_level", self.llm_controller.pc_level)
         self.llm_controller.action_quantity = params.get("quantity", self.llm_controller.action_quantity)
+
+    def _on_manual_dm_prompt(self, prompt_text: str):
+        """Slot called when a manual DM prompt is submitted."""
+        self.app_logger.info("Manual DM prompt submitted.")
+        self.llm_controller.process_manual_dm_prompt(prompt_text)
 
 # --- Main Execution --- (Entry point) - REMOVED
 # def main(): ...

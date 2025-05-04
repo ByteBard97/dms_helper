@@ -49,6 +49,7 @@ class LLMController(QObject):
         self.gatekeeper_prompt_template = None
         self.main_prompt_template = None
         self.styling_guide_content = None
+        self.manual_prompt_template = None
         self.is_processing = False
 
         # DM Action Parameters (mirrored from MainWindow original)
@@ -93,11 +94,13 @@ class LLMController(QObject):
         main_prompt_path_str = self.config.get("paths.main_prompt", "prompts/dm_assistant_prompt.md")
         campaign_config_path_str = self.config.get("paths.campaign_config", "source_materials/default_campaign.json")
         style_guide_path_str = "prompts/markdown_styling_guide.md"
+        manual_prompt_path_str = "prompts/dm_manual_input_prompt.md"
 
         gatekeeper_prompt_path = project_root / gatekeeper_prompt_path_str
         main_prompt_path = project_root / main_prompt_path_str
         campaign_config_path = project_root / campaign_config_path_str
         style_guide_path = project_root / style_guide_path_str
+        manual_prompt_path = project_root / manual_prompt_path_str
 
         # --- Load Prompts & Style Guide (CRITICAL - No try/except) ---
         if main_prompt_path.is_file():
@@ -127,6 +130,12 @@ class LLMController(QObject):
             self.styling_guide_content = None
             self.llm_error.emit(error_msg) # Emit error signal
             return # Cannot proceed without style guide
+
+        if manual_prompt_path.is_file():
+            self.manual_prompt_template = manual_prompt_path.read_text(encoding="utf-8")
+            self.app_logger.info("Manual DM prompt template loaded.")
+        else:
+            self.app_logger.warning(f"Manual DM prompt template not found at {manual_prompt_path}. Manual queries disabled.")
 
         # Initialize Ollama Client (Currently Skipped in original - keep logic)
         # ollama_host = self.config.get("servers.ollama_host", "http://localhost:11434")
@@ -366,4 +375,15 @@ class LLMController(QObject):
         # --------------------------------------
 
         # Trigger internal request, marking it as a DM action
-        self._trigger_llm_request_internal(formatted_action_prompt, is_dm_action=True) 
+        self._trigger_llm_request_internal(formatted_action_prompt, is_dm_action=True)
+
+    # ------------------------------------------------------------------
+    # Public API for manual DM prompts
+    # ------------------------------------------------------------------
+    def process_manual_dm_prompt(self, raw_text: str) -> None:  # noqa: D401
+        """Wrap *raw_text* in the manual prompt template and send to LLM."""
+        if not self.manual_prompt_template:
+            self.app_logger.error("Manual prompt template not loaded; ignoring manual query.")
+            return
+        wrapped_prompt = self.manual_prompt_template.replace("{{DM_QUERY}}", raw_text)
+        self._trigger_llm_request_internal(wrapped_prompt, is_dm_action=False) 
