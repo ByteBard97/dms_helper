@@ -21,7 +21,7 @@ from config_manager import ConfigManager
 from controllers.audio_controller import AudioController
 from controllers.transcription_controller import TranscriptionController
 from controllers.llm_controller import LLMController
-from models.markdown_utils import markdown_to_html_fragment
+from controllers.response_processor import convert_markdown_to_html
 
 # Custom widget grouping DM action controls
 # from dm_action_panel import DMActionPanel
@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
         self.conv_logger.info(json.dumps(assistant_log_entry))
 
         # Render in the left-hand web view
-        self.output_widget.append_html(markdown_to_html_fragment(response_markdown))
+        self.output_widget.append_html(convert_markdown_to_html(response_markdown))
 
         # Once the response is processed, the LLM controller will emit processing_finished
         # which re-enables DM buttons via _on_llm_processing_finished.

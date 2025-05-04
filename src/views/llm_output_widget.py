@@ -16,8 +16,9 @@ from __future__ import annotations
 from pathlib import Path
 import re
 import json
+import logging
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QWidget  # For type hints
 from PyQt5.QtCore import pyqtSlot
@@ -51,29 +52,25 @@ class LLMOutputWidget(QWebEngineView):
         settings.setAttribute(settings.WebAttribute.WebGLEnabled, False)
         settings.setAttribute(settings.WebAttribute.PluginsEnabled, False)
 
+        logger = logging.getLogger(__name__)
         # Load initial blank/placeholder page so the view is never empty.
         template_path = (
             Path(__file__).with_suffix("").parent.parent / "templates" / "chat_template.html.tpl"
         )
         if template_path.is_file():
+            logger.debug("LLMOutputWidget: Using template file %s", template_path)
             template_text = template_path.read_text(encoding="utf-8")
         else:
-            # Fallback minimal HTML if template missing
+            logger.warning("LLMOutputWidget: Template not found at %s", template_path)
             template_text = "<html><body><p>Template missing.</p></body></html>"
 
-        # Currently we rely on external CSS (dnd_style.css) to define colours.
-        # Keep only background colour if we need it for fallback; omit text colour
-        substitutions = {
-            "background_color": "#000000",
-        }
+        rendered_html = template_text  # No substitutions currently
+        base_url = QUrl.fromLocalFile(str(template_path.parent) + "/")
+        logger.debug("LLMOutputWidget: setHtml baseUrl=%s", base_url.toString())
+        self.setHtml(rendered_html, baseUrl=base_url)
 
-        def _replace(match: re.Match[str]) -> str:  # type: ignore[type-var]
-            key = match.group(1)
-            return substitutions.get(key, match.group(0))
-
-        rendered_html = re.sub(r"\{\{\s*(\w+)\s*\}\}", _replace, template_text)
-
-        self.setHtml(rendered_html, baseUrl=QUrl("file:///"))
+        # Replace default page with debug-enabled page
+        self.setPage(DebugWebPage(self))
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -188,4 +185,15 @@ def json_dumps(val: str) -> str:  # noqa: D401
 
 def _js_str(py_str: str) -> str:  # noqa: D401
     """Return a JSON-encoded JS string literal for *py_str*."""
-    return json_dumps(py_str) 
+    return json_dumps(py_str)
+
+# ---------------------------------------------------------------------------
+# Custom page that forwards JavaScript console messages to Python logging
+# ---------------------------------------------------------------------------
+
+class DebugWebPage(QWebEnginePage):
+    """A QWebEnginePage that logs JS console output to Python's logging."""
+
+    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):  # type: ignore[override]
+        logger = logging.getLogger("JS")
+        logger.debug("JS console (%s:%s): %s", sourceID, lineNumber, message) 

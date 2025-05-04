@@ -92,4 +92,38 @@ Use for tables that should mimic the D&D book style (e.g., encounter tables, tre
 </div>
 ```
 
-**IMPORTANT:** Always adhere to these guidelines. Use standard Markdown where appropriate and apply the specified `<div>` wrappers with the correct CSS classes for special D&D elements. 
+**IMPORTANT:** Always adhere to these guidelines. Use standard Markdown where appropriate and apply the specified `<div>` wrappers with the correct CSS classes for special D&D elements.
+
+## JSON Stat-Blocks
+
+When describing a creature, monster, or NPC, **output a single fenced JSON block** exactly in the structure below—_no additional prose before or after the block_. The UI will automatically detect and render it.
+
+```json
+{
+  "name": "Goblin",
+  "size": "Small",
+  "type": "humanoid",
+  "alignment": "neutral evil",
+  "armor_class": 15,
+  "hit_points": 7,
+  "speed": "30 ft.",
+  "abilities": {
+    "str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8
+  },
+  "senses": "darkvision 60 ft.",
+  "languages": "Common, Goblin",
+  "challenge": "1/4 (50 XP)",
+  "traits": [
+    { "name": "Nimble Escape", "desc": "The goblin can take the Disengage or Hide action as a bonus action." }
+  ],
+  "actions": [
+    { "name": "Scimitar",  "desc": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6+2) slashing." },
+    { "name": "Shortbow", "desc": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6+2) piercing." }
+  ]
+}
+```
+
+Guidelines:
+- Use the keys exactly as shown; omit any field that doesn't apply.
+- Do **not** wrap this JSON in extra Markdown like blockquotes or headings.
+- Each creature gets its own fenced block. 
