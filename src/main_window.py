@@ -18,18 +18,18 @@ from PyQt5.QtCore import Qt, QUrl, pyqtSignal
 # Project Imports
 from log_manager import LogManager
 from config_manager import ConfigManager
-from audio_controller import AudioController
-from transcription_controller import TranscriptionController
-from llm_controller import LLMController
-from markdown_utils import markdown_to_html_fragment
+from controllers.audio_controller import AudioController
+from controllers.transcription_controller import TranscriptionController
+from controllers.llm_controller import LLMController
+from models.markdown_utils import markdown_to_html_fragment
 
 # Custom widget grouping DM action controls
 # from dm_action_panel import DMActionPanel
 
 # New modular widgets
-from llm_output_widget import LLMOutputWidget
-from user_speech_widget import UserSpeechWidget
-from controls_widget import ControlsWidget
+from views.llm_output_widget import LLMOutputWidget
+from views.user_speech_widget import UserSpeechWidget
+from views.controls_widget import ControlsWidget
 
 class MainWindow(QMainWindow):
     """

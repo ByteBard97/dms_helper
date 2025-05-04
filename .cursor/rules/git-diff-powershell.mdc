@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
     *   **Reliable Git Diff in PowerShell:** Before committing, if you need to review the diff in a PowerShell environment where piping fails:
         ```markdown

@@ -10,8 +10,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 # Project Imports
 from config_manager import ConfigManager
 from log_manager import LogManager
-from transcript_accumulator import TranscriptAccumulator
-from audio_controller import AudioController
+from models.transcript_accumulator import TranscriptAccumulator
+from controllers.audio_controller import AudioController
 
 # Import client carefully - assuming it's findable
 # Handle potential ImportError higher up if needed
@@ -103,7 +103,7 @@ class TranscriptionController(QObject):
             return
 
         # --- Configuration Gathering ---
-        project_root = Path(__file__).parent.parent
+        project_root = Path(__file__).resolve().parents[2]
         input_audio_path_str = self.config.get("paths.input_audio", "default_audio.wav")
         input_audio_path = str(project_root / input_audio_path_str) # Ensure absolute path
         transcription_host = self.config.get("servers.transcription_host", "localhost")

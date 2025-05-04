@@ -52,7 +52,9 @@ class LLMOutputWidget(QWebEngineView):
         settings.setAttribute(settings.WebAttribute.PluginsEnabled, False)
 
         # Load initial blank/placeholder page so the view is never empty.
-        template_path = Path(__file__).with_suffix("").parent / "templates" / "chat_template.html.tpl"
+        template_path = (
+            Path(__file__).with_suffix("").parent.parent / "templates" / "chat_template.html.tpl"
+        )
         if template_path.is_file():
             template_text = template_path.read_text(encoding="utf-8")
         else:

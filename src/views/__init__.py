@@ -1,0 +1,1 @@
+"""Views package for passive Qt widgets (MVP architecture).""" 

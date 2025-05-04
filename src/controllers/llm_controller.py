@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Any
 import uuid
-from markdown_utils import markdown_to_html_fragment
+from models.markdown_utils import markdown_to_html_fragment
 
 from PyQt5.QtCore import QObject, pyqtSignal
 from dotenv import load_dotenv
@@ -16,7 +16,7 @@ import ollama # Still needed for potential future gatekeeper integration
 # Project Imports
 from config_manager import ConfigManager
 from log_manager import LogManager
-from context_loader import load_and_combine_context
+from models.context_loader import load_and_combine_context
 
 class LLMController(QObject):
     """
@@ -98,7 +98,8 @@ class LLMController(QObject):
         """Initializes LLMs, loads prompts, styling guide, and potentially past session."""
         self.app_logger.info("Initializing LLM Systems from Config...")
 
-        project_root = Path(__file__).parent.parent
+        # controllers/ is two levels below project root (controllers/ inside src/)
+        project_root = Path(__file__).resolve().parents[2]
         gatekeeper_prompt_path_str = self.config.get("paths.gatekeeper_prompt", "prompts/gatekeeper_prompt.md")
         main_prompt_path_str = self.config.get("paths.main_prompt", "prompts/dm_assistant_prompt.md")
         campaign_config_path_str = self.config.get("paths.campaign_config", "source_materials/default_campaign.json")
@@ -370,7 +371,7 @@ class LLMController(QObject):
             # Optionally emit a signal or return a status to inform UI
             return
 
-        project_root = Path(__file__).parent.parent
+        project_root = Path(__file__).resolve().parents[2]
         prompt_path = project_root / "prompts" / prompt_filename
 
         if not prompt_path.is_file():

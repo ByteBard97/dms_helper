@@ -21,8 +21,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import pyqtSignal, Qt
 
 from config_manager import ConfigManager
-from dm_action_panel import DMActionPanel
-from dm_input_widget import DMInputWidget  # local import to avoid cycles
+from .dm_action_panel import DMActionPanel
+from .dm_input_widget import DMInputWidget  # local import to avoid cycles
 
 __all__ = ["ControlsWidget"]
 

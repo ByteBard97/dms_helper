@@ -14,7 +14,7 @@ from log_manager import LogManager
 os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--ignore-gpu-blocklist --enable-gpu-rasterization --enable-zero-copy --use-gl=angle"
 
 # Import the markdown conversion utility AND the CSS string
-from markdown_utils import markdown_to_html_fragment, DND_CSS
+from models.markdown_utils import markdown_to_html_fragment, DND_CSS
 from main_window import MainWindow # Keep this import
 
 # --- Logging Setup (REMOVED) ---
