@@ -22,7 +22,7 @@ alwaysApply: true
   html = statblock_renderer.json_to_statblock_html(data)
   main_window.output_widget.append_html(html)
   ```
-dddd
+
 - **Models are UI-agnostic**
   - Encapsulate data structures, JSON schemas, and validation helpers (e.g., `statblock_renderer.py`).
   - No Qt dependencies inside model modules.
