@@ -30,7 +30,7 @@ if ($ExistingContainer -eq $ContainerName) {
     # Container does not exist, run it for the first time
     Write-Host "Container '$ContainerName' not found. Running for the first time..."
     Write-Host "This may take a while if the model needs to be downloaded."
-    docker run -it --gpus all -p 9090:9090 --name $ContainerName $ImageName
+    docker run -it --gpus all -p 9090:9090 --name $ContainerName $ImageName --client_timeout 300
 }
 
 # Optional: Keep window open if not run interactively

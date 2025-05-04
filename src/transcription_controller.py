@@ -143,7 +143,8 @@ class TranscriptionController(QObject):
             host=transcription_host,
             port=transcription_port,
             **client_args,
-            **wrapper_args
+            **wrapper_args,
+            max_connection_time=18000 # Increase to 5 hours (in seconds)
         )
         self.app_logger.info("Transcription client instance initialized.")
 
