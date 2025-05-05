@@ -1,6 +1,6 @@
 # Project Progress Note – 2025-05-05 
 
-The D&D Helper refactor is now stable and feature-complete for its **MVP milestone**. This file replaces the old “refactoring attempt failure” hand-off; the blocking UI bug has been fixed and many enhancements are in place.
+The D&D Helper refactor is now stable and feature-complete for its **MVP milestone**. This file replaces the old "refactoring attempt failure" hand-off; the blocking UI bug has been fixed and many enhancements are in place.
 
 ---
 
@@ -26,7 +26,7 @@ The D&D Helper refactor is now stable and feature-complete for its **MVP milesto
 
 ## Immediate Next Task
 
-**Task 23 – Add text-size zoom shortcuts** (keyboard zoom for user-speech and output panes, persist setting). All prerequisite work is done.
+Text zoom shortcuts (Task 23) completed ✅. Use `task-master next` to select the next pending task.
 
 ---
 

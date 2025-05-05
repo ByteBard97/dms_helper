@@ -99,16 +99,13 @@ API keys are loaded from `.env` (see `requirements.md`).
 * **Markdown table normaliser** – auto-fixes malformed pipe tables and wraps them in `.table-5e` with zebra-striping.
 * **Class-based stat-block renderer** – consumes JSON, outputs semantic HTML; Web-Components retired.
 * **Global CSS refresh** – D&D parchment look, alternating table rows, better heading colours.
-* **Taskmaster maintenance** – Tasks 22 and 26 marked *done*; overly broad Task 13 *cancelled*.
+* **Text zoom shortcuts implemented** – Ctrl++ / Ctrl+- / Ctrl+0 now scale both panes; preference saved to *config.json* and restored on launch. (*Task 23 done*)
+* **Taskmaster maintenance** – Tasks 22, 23 and 26 marked *done*; overly broad Task 13 *cancelled*.
 
 ---
 ## Next Task
 
-**Task 23 – Text-size zoom shortcuts**
-
-• Add keyboard shortcuts (`Ctrl++`, `Ctrl+–`, `Ctrl+0`) to zoom both panes.  
-• Persist chosen zoom level in `config.json`.  
-• Sync zoom between panes so they scale together.
+TBD – Choose next high-priority task via Taskmaster (run `task-master next`).
 
 ---
 *Last updated: 2025-05-05 

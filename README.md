@@ -24,7 +24,8 @@ This application listens to the DM's voice during a game session, transcribes it
 *   Real-time GPU-accelerated transcription of DM's voice (via file playback currently).
 *   Context-aware LLM suggestions based on user-provided notes.
 *   Local LLM gatekeeper to filter transcript chunks before sending to the cloud LLM.
-*   Markdown rendering of LLM output in a simple GUI (Next Step).
+*   Markdown rendering of LLM output in a simple GUI.
+*   **Zoom shortcuts** – Ctrl+Plus / Ctrl+Minus adjust font sizes globally; Ctrl+0 resets. Setting persisted.
 *   Manual and automatic triggering for LLM interaction (Future Phase).
 
 ## Setup
@@ -66,8 +67,19 @@ This application listens to the DM's voice during a game session, transcribes it
     ```bash
     python src/dms_assistant.py
     ```
-6.  The script currently uses hardcoded paths for the campaign config and input audio file.
-7.  Transcription will begin, and suggestions from Gemini (filtered by the gatekeeper) will be **printed to the console**. GUI display is the next major feature planned.
+
+# Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Zoom In | Ctrl+= or Ctrl++ |
+| Zoom Out | Ctrl+- |
+| Reset Zoom | Ctrl+0 |
+
+These shortcuts scale both the LLM output pane and the user-speech pane. The chosen zoom level is saved in `config.json` and restored on launch.
+
+6.  The script currently uses hard-coded paths for the campaign config and input audio file.
+7.  Transcription will begin, and suggestions from Gemini (filtered by the gatekeeper) will stream into the GUI.
 
 ## Contributing
 
