@@ -22,6 +22,9 @@ from controllers.audio_controller import AudioController
 from controllers.transcription_controller import TranscriptionController
 from controllers.llm_controller import LLMController
 from controllers.response_processor import convert_markdown_to_html
+from controllers.response_processor import extract_statblock_html
+
+
 
 # Custom widget grouping DM action controls
 # from dm_action_panel import DMActionPanel
@@ -204,6 +207,7 @@ class MainWindow(QMainWindow):
         self.generate_loot_button.clicked.connect(lambda: self.llm_controller.trigger_dm_action("dm_action_generate_loot.md"))
         
         # --- Test button now loads and injects sample markdown/HTML ---
+        '''
         test_md_file_path = Path("prompts/test_statblock_markdown.md")
         test_markdown_content = ""
         if test_md_file_path.is_file():
@@ -218,6 +222,8 @@ class MainWindow(QMainWindow):
             # Alternative: connect to a lambda that shows the error
             # self.test_button.clicked.connect(lambda: self._show_error_message(error_msg))
         # ------------------------------------------------------------
+        '''
+        self.test_button.clicked.connect(lambda: self.inject_sample_statblock())
 
         # Connect ControlsWidget high-level signals
         cw = self.controls_widget
@@ -296,15 +302,40 @@ class MainWindow(QMainWindow):
         self.llm_controller.process_final_chunk(chunk_text)
 
     def handle_llm_response(self, response_markdown: str):
-        """Slot called when the LLMController emits a markdown response."""
-        self.app_logger.info(f"MainWindow: Received LLM response – length {len(response_markdown)}")
+        html = extract_statblock_html(response_markdown)
+        if html is None:
+            html = convert_markdown_to_html(response_markdown)  # your existing markdown → HTML
+        self.output_widget.append_html(html)
+        self.conv_logger.info(json.dumps({"role": "ASSISTANT", "content": response_markdown}))
 
-        # Append to conversation log
-        assistant_log_entry = {"role": "ASSISTANT", "content": response_markdown}
-        self.conv_logger.info(json.dumps(assistant_log_entry))
+    def inject_sample_statblock(self):
+        html = """
+    <stat-block>
+    <creature-heading>
+        <h1>Skeletal Knight</h1>
+        <h2>Medium undead, lawful evil</h2>
+    </creature-heading>
 
-        # Render in the left-hand web view
-        self.output_widget.append_html(convert_markdown_to_html(response_markdown))
+    <top-stats>
+        <property-line><h4>Armor Class</h4><p>18 (chain mail, shield)</p></property-line>
+        <property-line><h4>Hit Points</h4><p>67 (9d8 + 27)</p></property-line>
+        <property-line><h4>Speed</h4><p>30 ft.</p></property-line>
+
+        <abilities-block data-str="17" data-dex="13" data-con="16"
+                        data-int="6" data-wis="10" data-cha="9"></abilities-block>
+
+        <property-line><h4>Challenge</h4><p>4 (1 100 XP)</p></property-line>
+    </top-stats>
+
+    <property-block>
+        <h4>Undead Fortitude.</h4>
+        <p>If damage reduces the knight to 0 hp, it makes a CON save DC 10 or
+        half the damage taken, whichever is higher. On a success, it drops
+        to 1 hp instead.</p>
+    </property-block>
+    </stat-block>
+    """
+        self.output_widget.append_html(html)
 
         # Once the response is processed, the LLM controller will emit processing_finished
         # which re-enables DM buttons via _on_llm_processing_finished.

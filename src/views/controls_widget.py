@@ -177,9 +177,11 @@ class ControlsWidget(QWidget):
         self.generate_loot_button.clicked.connect(
             lambda: self._emit_dm_action("dm_action_generate_loot.md")
         )
+        """
         self.test_button.clicked.connect(
             lambda: self._emit_dm_action("prompts/test_statblock_markdown.md", is_test=True)
         )
+        """
 
     # ------------------------------------------------------------------
     # Helper emitters

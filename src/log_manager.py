@@ -129,6 +129,17 @@ class LogManager:
             sys.stderr.write("LogManager: App Logger configured with handlers (DEBUG level) and propagate=False.\n")
             sys.stderr.flush()
 
+            # --- Configure JS Logger (for WebEngine console messages) ---
+            js_logger = logging.getLogger("JS")
+            js_logger.setLevel(logging.DEBUG)
+            # Add the same handlers as the app logger
+            js_logger.addHandler(app_file_handler)
+            js_logger.addHandler(app_console_handler)
+            js_logger.propagate = False # Prevent duplication if root handler exists
+            sys.stderr.write("LogManager: JS Logger configured with handlers (DEBUG level) and propagate=False.\n")
+            sys.stderr.flush()
+            # -----------------------------------------------------------
+
             # --- Configure Conversation Logger (File path is now inside ./logs/) ---
             sys.stderr.write("LogManager: Configuring Conversation Logger...\n")
             sys.stderr.flush()

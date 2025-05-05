@@ -20,9 +20,11 @@ from __future__ import annotations
 import re
 import json
 from typing import List, Tuple
+import textwrap
 
 from models.markdown_utils import markdown_to_html_fragment
-from models.statblock_renderer import json_to_statblock_html
+from models.statblock_renderer import json_to_statblock
+
 
 __all__ = ["convert_markdown_to_html"]
 
@@ -50,7 +52,7 @@ def convert_markdown_to_html(markdown: str) -> str:  # noqa: D401
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-_FENCE_RE = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE)
+_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)\s*```", re.IGNORECASE)
 
 
 def _replace_statblocks(md: str) -> str:  # noqa: D401
@@ -67,7 +69,21 @@ def _replace_statblocks(md: str) -> str:  # noqa: D401
         if not (isinstance(data, dict) and {"name", "hit_points"} <= data.keys()):
             return match.group(0)
 
-        rendered = json_to_statblock_html(data)
+        rendered = json_to_statblock(data)
         return rendered
 
     return _FENCE_RE.sub(_sub, md) 
+
+_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)\s*```", re.I)
+
+
+# ---- 2.  Extract fenced JSON from the LLM reply ----------------------
+def extract_statblock_html(markdown: str) -> str | None:
+    m = _FENCE_RE.search(markdown)
+    if not m:
+        return None
+    try:
+        data = json.loads(textwrap.dedent(m.group(1)).strip())
+        return json_to_statblock(data)
+    except json.JSONDecodeError:
+        return None
