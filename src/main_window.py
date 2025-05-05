@@ -149,6 +149,9 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("Ctrl+0"), self, self.zoom_manager.reset_zoom)
         # -----------------------------------------------------------
 
+        # Keep UserSpeechWidget stylesheet in sync with zoom
+        self.zoom_manager.fontChanged.connect(self.user_speech_widget.apply_font)
+
     def _connect_signals(self):
         # --- Add Start/Stop Button Connections ---
         self.start_button.clicked.connect(self.transcription_controller.start_transcription)

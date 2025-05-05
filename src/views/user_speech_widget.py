@@ -12,8 +12,9 @@ by the existing application.
 
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QTextEdit, QWidget
+from PyQt5.QtWidgets import QTextEdit, QWidget, QApplication
 from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtGui import QFont
 
 from config_manager import ConfigManager
 
@@ -47,12 +48,17 @@ class UserSpeechWidget(QTextEdit):
         self._settled_text: str = ""
 
         # ------------------------------------------------------------------
-        # Typography – make the transcript comfortably readable
+        # Typography – start with the *application* default font size so that
+        # global zoom actions (handled by ZoomManager) can simply adjust the
+        # QFont and ask this widget to update.
         # ------------------------------------------------------------------
-        default_size_px = 16  # Logical default if not specified in config
-        font_size_px = self.config.get("ui_settings.user_speech_font_size", default_size_px)
-        # Apply via Qt style sheet so it cascades to all HTML rendered inside
-        self.setStyleSheet(f"font-size: {font_size_px}px;")
+        # Determine *base* sizes
+        default_px: int = 16
+        self._base_px: int = self.config.get("ui_settings.user_speech_font_size", default_px)
+        self._base_pt: int = QApplication.instance().font().pointSize()
+
+        # Apply initial style based on base_px
+        self._apply_font(QApplication.instance().font())
 
     # ------------------------------------------------------------------
     # Public API
@@ -91,4 +97,19 @@ class UserSpeechWidget(QTextEdit):
 
     # Visibility convenience – allows ControlsWidget to toggle quickly
     def set_visibility(self, visible: bool) -> None:  # noqa: D401
-        self.setVisible(visible) 
+        self.setVisible(visible)
+
+    @pyqtSlot(QFont)
+    def apply_font(self, font: QFont) -> None:  # noqa: D401
+        """Slot: updates the stylesheet to use *font.pointSize()* pixels."""
+        self._apply_font(font)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _apply_font(self, font: QFont) -> None:
+        """Update CSS pixel size proportionally to the global application font."""
+        factor: float = font.pointSize() / self._base_pt if self._base_pt else 1.0
+        px: int = max(8, int(round(self._base_px * factor)))
+        self.setStyleSheet(f"font-size: {px}px;") 
