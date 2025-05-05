@@ -47,12 +47,12 @@ _LOGGER.setLevel(logging.DEBUG)
 
 def convert_markdown_to_html(markdown: str) -> str:  # noqa: D401
     """Convert *markdown* to HTML, expanding any JSON stat-blocks."""
-    _LOGGER.debug("[convert_markdown_to_html] Received markdown (length=%s):\n%s", len(markdown), markdown)
+    # _LOGGER.debug("[convert_markdown_to_html] Received markdown (length=%s):\n%s", len(markdown), markdown)
 
     processed_md = _replace_statblocks(markdown)
     processed_md = _normalize_tables(processed_md)
 
-    _LOGGER.debug("[convert_markdown_to_html] Preprocessed markdown (length=%s):\n%s", len(processed_md), processed_md)
+    # _LOGGER.debug("[convert_markdown_to_html] Preprocessed markdown (length=%s):\n%s", len(processed_md), processed_md)
 
     return markdown_to_html_fragment(processed_md)
 
@@ -114,7 +114,7 @@ def _normalize_tables(md: str) -> str:  # noqa: D401
 
     logger = _LOGGER
 
-    logger.debug("[TableNormalizer] Raw input (length=%s):\n%s", len(md), md)
+    # _LOGGER.debug("[TableNormalizer] Raw input (length=%s):\n%s", len(md), md)
 
     # 1. Ensure any existing <div class="table-5e"> has the markdown attribute so that
     #    Python-Markdown processes its inner text.
@@ -128,8 +128,8 @@ def _normalize_tables(md: str) -> str:  # noqa: D401
     # 2. Replace occurrences like '| |' (pipe, optional spaces, pipe) with a newline pipe.
     fixed_md = re.sub(r"\|\s*\|", "|\n|", md)
     if fixed_md != md:
-        logger.debug("[TableNormalizer] Applied pipe-newline fix to table block.")
-    md = fixed_md
+        # _LOGGER.debug("[TableNormalizer] Applied pipe-newline fix to table block.")
+        md = fixed_md
 
     lines = md.splitlines()
     output: list[str] = []
@@ -177,6 +177,8 @@ def _normalize_tables(md: str) -> str:  # noqa: D401
     flush_table()
     result = "\n".join(output)
     if result != md:
-        logger.debug("[TableNormalizer] Wrapped %s table line(s) in .table-5e div.", len(result.splitlines()) - len(lines))
-    logger.debug("[TableNormalizer] Result after normalization (length=%s):\n%s", len(result), result)
-    return result 
+        # _LOGGER.debug("[TableNormalizer] Wrapped %s table line(s) in .table-5e div.", len(result.splitlines()) - len(lines))
+        md = result
+
+    # _LOGGER.debug("[TableNormalizer] Result after normalization (length=%s):\n%s", len(result), result)
+    return md 
