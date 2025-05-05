@@ -18,13 +18,14 @@
         "ollama_host": "http://192.168.0.200:11434"
     },
     "ui_settings": {
-        "show_user_speech": true
+        "show_user_speech": true,
+        "font_step": 6
     },
     "session_state": {
         "last_audio_position_sec": 0.0
     },
     "audio_settings": {
-        "last_playback_position": 871.68,
+        "last_playback_position": 971.776,
         "input_source": "File"
     },
     "dm_actions": {

@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt, QUrl, pyqtSignal
+from PyQt5.QtWidgets import QShortcut
+from PyQt5.QtGui import QKeySequence
 # --------------------------------------
 
 # Project Imports
@@ -135,6 +137,17 @@ class MainWindow(QMainWindow):
         # -------------------------------
 
         self.app_logger.info("MainWindow initialization complete.")
+
+        # ----------------- ZoomManager & Shortcuts -----------------
+        from zoom_manager import ZoomManager  # local import to avoid circular issues
+        self.zoom_manager = ZoomManager(self.config, self.output_widget)
+
+        # Register keyboard shortcuts (Ctrl++ | Ctrl+=, Ctrl+-, Ctrl+0)
+        QShortcut(QKeySequence("Ctrl++"), self, self.zoom_manager.zoom_in)
+        QShortcut(QKeySequence("Ctrl+="), self, self.zoom_manager.zoom_in)  # plus key alias
+        QShortcut(QKeySequence("Ctrl+-"), self, self.zoom_manager.zoom_out)
+        QShortcut(QKeySequence("Ctrl+0"), self, self.zoom_manager.reset_zoom)
+        # -----------------------------------------------------------
 
     def _connect_signals(self):
         # --- Add Start/Stop Button Connections ---
