@@ -58,6 +58,15 @@ Use for tables that should mimic the D&D book style (e.g., encounter tables, tre
 </div>
 ```
 
+Guidelines for tables:
+
+- **Always** wrap the markdown table in `<div class="table-5e"> … </div>` so the CSS can style it.
+- Ensure the table uses *valid* GitHub-flavoured Markdown: one header row, one alignment row, and then data rows.
+- **No extra leading or trailing `|`** beyond the normal row separators. A correct row looks like:
+  `| 1 | 1d4 **Sahuagin** scouts on patrol |`
+- The alignment row must match the number of columns, e.g.: `|:---|:--------------------|`.
+- Avoid blank lines *inside* the div; keep the table contiguous.
+
 ## JSON Stat-Blocks
 
 When describing a creature, monster, or NPC, **output a single fenced JSON block** exactly in the structure below—_no additional prose before or after the block_. The UI will automatically detect and render it.

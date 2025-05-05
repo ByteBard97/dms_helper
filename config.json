@@ -29,7 +29,7 @@
     },
     "dm_actions": {
         "default_pc_level": 1,
-        "default_quantity": 1
+        "default_quantity": 10
     },
     "transcription": {
         "min_sentences": 5

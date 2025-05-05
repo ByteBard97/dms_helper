@@ -104,6 +104,11 @@
     background-color: #FFF8E7; /* Slightly lighter parchment for odd rows */
 }
 
+/* Provide a subtly different colour for even rows to enhance readability */
+.table-5e tr:nth-child(even) td {
+    background-color: #FDF1DC; /* Base parchment for even rows */
+}
+
 /* --- Styles Adapted from statblock5e --- */
 
 /* Main container - mimicking #content-wrap from stat-block.html */
