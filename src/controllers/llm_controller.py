@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 import uuid
 from models.markdown_utils import markdown_to_html_fragment
+from controllers.response_processor import convert_markdown_to_html
 
 from PyQt5.QtCore import QObject, pyqtSignal
 from dotenv import load_dotenv
@@ -330,12 +331,12 @@ class LLMController(QObject):
 
         accumulated_markdown = ""
         for chunk in gemini_stream:
-            if not hasattr(chunk, "text"):
-                self.app_logger.warning(
-                    f"LLM Worker [{stream_id}]: Received non-text chunk of type {type(chunk)}; skipping."
-                )
+            # Gemini returns a final chunk where `.text` raises ValueError if finish_reason != 0.
+            try:
+                chunk_text: str = chunk.text  # type: ignore[attr-defined]
+            except ValueError:
+                # Skip chunks that contain no textual part (e.g., finish_reason sentinel)
                 continue
-            chunk_text: str = chunk.text
             accumulated_markdown += chunk_text
             # Convert streaming chunk markdown to HTML fragment for immediate display
             html_fragment = markdown_to_html_fragment(chunk_text)
@@ -343,7 +344,7 @@ class LLMController(QObject):
             self.response_chunk_received.emit(stream_id, html_fragment)
 
         # After streaming completes, convert full markdown to HTML
-        final_html = markdown_to_html_fragment(accumulated_markdown)
+        final_html = convert_markdown_to_html(accumulated_markdown)
         self.stream_finished.emit(stream_id, final_html)
 
         # --- Log Assistant Response ---

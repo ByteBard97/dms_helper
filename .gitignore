@@ -190,3 +190,4 @@ tasks.json
 tasks/ 
 source_materials/*.md
 source_materials/*.pdf
+output.srt
