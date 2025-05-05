@@ -24,9 +24,11 @@ The D&D Helper refactor is now stable and feature-complete for its **MVP milesto
 * Audio playback + Whisper Live transcription confirmed working; transcription pane updates.
 * Latency is acceptable (<5 s round-trip on local hardware).
 
-## Immediate Next Task
+## Immediate Next Task – *In Progress*
 
-Text zoom shortcuts (Task 23) completed ✅. Use `task-master next` to select the next pending task.
+We're currently analysing and refining the **TranscriptAccumulator** criteria.  
+Goal: ensure the GUI-selected *Min Sentences* value is honoured and prevent early flushes triggered solely by word-count.  
+Deliverables will include updated accumulator logic, new config defaults, and revised tests/doc notes.
 
 ---
 

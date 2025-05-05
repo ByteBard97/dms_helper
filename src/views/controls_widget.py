@@ -95,6 +95,13 @@ class ControlsWidget(QWidget):
         self.min_sentences_label = QLabel("Min Sentences:")
         self.min_sentences_spinbox = QSpinBox()
         self.min_sentences_spinbox.setRange(1, 10)
+        # Initialise value from configuration
+        init_min_sent = int(self.config.get("transcription.min_sentences", 3) or 3)
+        if init_min_sent < 1:
+            init_min_sent = 1
+        if init_min_sent > 10:
+            init_min_sent = 10
+        self.min_sentences_spinbox.setValue(init_min_sent)
 
         self.flush_button = QPushButton("Flush Accumulator")
 

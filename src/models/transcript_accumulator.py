@@ -39,8 +39,7 @@ class TranscriptAccumulator:
         self.min_sentences = min_sentences
         # self.max_sentences = max_sentences # Keep commented
         self.min_words = min_words
-        self.sentence_count = 0 # Added for sentence count tracking
-        # Removed complex sentence split pattern, will use nltk.sent_tokenize
+        # sentence_count now computed on-demand instead of tracked incrementally
         logging.info(f"TranscriptAccumulator initialized (NLTK, MinSentences: {self.min_sentences}, MinWords: {self.min_words}).")
 
     def _get_word_count(self, text: str) -> int:
@@ -64,10 +63,6 @@ class TranscriptAccumulator:
                     newly_completed_text += " "
                 newly_completed_text += segment_text
                 self.last_processed_end_time = end_time
-                # Sentence count still updated here, but defer the actual
-                # buffer append until *after* the loop to ensure we do not
-                # add the same text twice (which was causing duplicates).
-                self.sentence_count += 1
             elif not is_completed and segment_text:
                  # Log skipped non-completed segments if desired, but don't add to buffer
                  logging.debug(f"Accumulator: Skipping non-completed segment: '{segment_text[:50]}...'")
@@ -80,23 +75,25 @@ class TranscriptAccumulator:
             if self.buffer and not str(self.buffer[-1]).endswith(" "):
                 self.buffer.append(" ")
             self.buffer.append(newly_completed_text)
+            total_text = " ".join(self.buffer).strip()
+            total_sentence_count = len(nltk.sent_tokenize(total_text)) if total_text else 0
+            total_word_count = self._get_word_count(total_text)
             logging.debug(
-                "Accumulator: Buffer updated with completed text. Current length: %d items, Word count: %d",
-                len(self.buffer),
-                self._get_word_count(' '.join(self.buffer))
+                "Accumulator debug → sentences: %d / target %d, words: %d / target %d",
+                total_sentence_count,
+                self.min_sentences,
+                total_word_count,
+                self.min_words,
             )
+
+            if total_sentence_count >= self.min_sentences or total_word_count >= self.min_words:
+                chunk_to_return = total_text
+                self.buffer = []  # Clear buffer
+                return chunk_to_return
+            # Not enough sentences/words yet
+            return None
         else:
             # No new completed segments were added in this call.
-            return None
-
-        # --- Check if buffer should be processed ---
-        if self.sentence_count >= self.min_sentences or len(self.buffer) >= self.min_words: # Check both conditions
-            chunk_to_return = " ".join(self.buffer).strip()
-            self.buffer = [] # Clear buffer
-            self.sentence_count = 0 # Reset sentence count
-            return chunk_to_return
-        else:
-            # Not enough sentences/words yet
             return None
 
     def flush(self) -> Optional[str]:
@@ -117,5 +114,4 @@ class TranscriptAccumulator:
         
         chunk_to_return = " ".join(self.buffer).strip()
         self.buffer = [] # Clear buffer
-        self.sentence_count = 0 # Reset sentence count
         return chunk_to_return 

@@ -304,7 +304,13 @@ class TranscriptionController(QObject):
                 # --- Accumulate & Emit Final ---
                 accumulated_chunk = self.accumulator.add_segments(data)
                 if accumulated_chunk:
-                    self.app_logger.info(f"Accumulator produced final chunk, emitting: {accumulated_chunk[:80]}...")
+                    # Compute diagnostics
+                    import nltk
+                    sentence_count = len(nltk.sent_tokenize(accumulated_chunk))
+                    word_count = len(accumulated_chunk.split())
+                    self.app_logger.info(
+                        f"Accumulator ready. Sentences: {sentence_count}, Words: {word_count}. Emitting chunk: {accumulated_chunk[:80]}..."
+                    )
                     self.final_chunk_ready.emit(accumulated_chunk)
 
             else:

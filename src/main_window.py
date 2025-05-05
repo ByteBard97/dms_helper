@@ -195,6 +195,8 @@ class MainWindow(QMainWindow):
 
         # 4.  Min sentences spinbox → TranscriptionController accumulator parameter
         self.min_sentences_spinbox.valueChanged.connect(self.transcription_controller.set_min_sentences)
+        # Immediately sync the current spinbox value to the accumulator (initial value might have been set before wiring)
+        self.transcription_controller.set_min_sentences(self.min_sentences_spinbox.value())
 
         # 5.  Flush accumulator button → TranscriptionController flush method
         self.flush_button.clicked.connect(self.transcription_controller.flush_accumulator)
