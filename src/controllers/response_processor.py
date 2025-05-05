@@ -8,7 +8,7 @@ Workflow
 1. Detect fenced JSON blocks (```json … ```), attempt to parse them.
 2. If a block parses as a stat-block (heuristic: must have "name" and at
    least one key like "hit_points", "armor_class", or "abilities"), render
-   it via ``models.statblock_renderer.json_to_statblock`` and replace the
+   it via ``models.class_statblock_renderer.json_to_statblock`` and replace the
    fenced block with the resulting HTML.
 3. Pass the (potentially modified) markdown through
    ``models.markdown_utils.markdown_to_html_fragment`` to get final HTML.
@@ -25,7 +25,7 @@ import textwrap
 from typing import Any
 
 from models.markdown_utils import markdown_to_html_fragment
-from models.statblock_renderer import json_to_statblock
+from models.class_statblock_renderer import json_to_statblock
 
 __all__ = ["convert_markdown_to_html", "extract_statblock_html"]
 
