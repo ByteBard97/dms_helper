@@ -93,9 +93,22 @@ API keys are loaded from `.env` (see `requirements.md`).
 * Implemented real-time streaming of Gemini responses to the GUI via new signals in `LLMController` and JS updates in `LLMOutputWidget` (Task #28).
 
 ---
-## Planned / Pending Work
-* **Task #28 – Streaming Gemini Output** (in progress): leverage the new streaming signals in `LLMController` and dynamic DOM updates in `LLMOutputWidget` for real-time token display.
-* Bottom control layout fine-tuning to align with the design spec (left column + 50%-width prompt under speech pane).
+## Latest Updates (May 05)
+
+* **Streaming Gemini output complete** – real-time chunks now appear in the GUI, replaced by fully formatted HTML when finished.
+* **Markdown table normaliser** – auto-fixes malformed pipe tables and wraps them in `.table-5e` with zebra-striping.
+* **Class-based stat-block renderer** – consumes JSON, outputs semantic HTML; Web-Components retired.
+* **Global CSS refresh** – D&D parchment look, alternating table rows, better heading colours.
+* **Taskmaster maintenance** – Tasks 22 and 26 marked *done*; overly broad Task 13 *cancelled*.
 
 ---
-*Last updated: 2025-05-04 
+## Next Task
+
+**Task 23 – Text-size zoom shortcuts**
+
+• Add keyboard shortcuts (`Ctrl++`, `Ctrl+–`, `Ctrl+0`) to zoom both panes.  
+• Persist chosen zoom level in `config.json`.  
+• Sync zoom between panes so they scale together.
+
+---
+*Last updated: 2025-05-05 
