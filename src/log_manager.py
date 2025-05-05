@@ -50,7 +50,7 @@ class LogManager:
     APP_LOG_FILENAME = "app.log"
     CONVERSATION_LOG_FILENAME = "session.log"
     RAW_TRANSCRIPT_LOG_FILENAME = "raw_transcript.log"
-    ARCHIVE_FOLDER = "logs_archive"
+    ARCHIVE_FOLDER = "archive"
     APP_LOGGER_NAME = "dms_helper"
     CONVERSATION_LOGGER_NAME = "conversation"
     RAW_TRANSCRIPT_LOGGER_NAME = "transcript_raw"
@@ -76,7 +76,7 @@ class LogManager:
             log_dir.mkdir(exist_ok=True) # Ensure the logs directory exists
             # -------------------------------------------------------
             archive_dir = log_dir / LogManager.ARCHIVE_FOLDER
-            archive_dir.mkdir(exist_ok=True) # Ensure archive directory exists
+            archive_dir.mkdir(exist_ok=True)  # Ensure archive directory exists
             sys.stderr.write(f"LogManager: Log directory: {log_dir.resolve()}\n")
             sys.stderr.write(f"LogManager: Archive directory path: {archive_dir.resolve()}\n")
             sys.stderr.flush()

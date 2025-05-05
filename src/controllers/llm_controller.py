@@ -18,6 +18,7 @@ import ollama # Still needed for potential future gatekeeper integration
 from config_manager import ConfigManager
 from log_manager import LogManager
 from models.context_loader import load_and_combine_context
+from models.history_loader import load_previous_session_history
 
 class LLMController(QObject):
     """
@@ -156,7 +157,7 @@ class LLMController(QObject):
         self.app_logger.info("Ollama client initialization skipped (as per original logic).")
 
         # --- Load History / Default Context ---
-        initial_history = self._load_previous_session_history(LogManager.CONVERSATION_LOG_FILENAME)
+        initial_history = load_previous_session_history()
         if not initial_history:
             self.app_logger.info("Loading default initial context for LLM.")
             initial_context = load_and_combine_context(str(campaign_config_path))
@@ -186,38 +187,6 @@ class LLMController(QObject):
 
         self.chat_session = model.start_chat(history=initial_history)
         self.app_logger.info(f"LLM chat session started with model: {llm_model_name}. History length: {len(initial_history)}")
-
-
-    def _load_previous_session_history(self, log_filename) -> List[Dict[str, Any]]:
-        """Loads chat history from a .jsonl file."""
-        initial_history = []
-        session_log_file_path = Path(f"{log_filename}.jsonl")
-        if session_log_file_path.exists():
-            self.app_logger.info(f"Found previous session log: {session_log_file_path}, attempting to load history.")
-            # Read file line by line without outer try/except
-            with open(session_log_file_path, 'r', encoding='utf-8') as f:
-                for line_num, line in enumerate(f, 1):
-                    stripped_line = line.strip()
-                    if not stripped_line: continue # Skip empty lines
-
-                    # Parse JSON without try/except
-                    log_entry = json.loads(stripped_line)
-                    role = log_entry.get("role")
-                    content = log_entry.get("content")
-
-                    if role and content:
-                        gemini_role = "model" if role == "assistant" else "user"
-                        initial_history.append({'role': gemini_role, 'parts': [content]})
-                    else:
-                         self.app_logger.warning(f"Skipping invalid log line {line_num} (missing role/content): {stripped_line}")
-
-            if initial_history:
-                self.app_logger.info(f"Successfully loaded {len(initial_history)} entries from previous session.")
-            else:
-                 self.app_logger.info("Previous session log was empty or contained no valid entries.")
-        else:
-             self.app_logger.info("No previous session log found.")
-        return initial_history
 
     # --- Gatekeeper Logic (Extracted - Currently Bypassed) ---
     def _run_gatekeeper_check(self, text_chunk: str) -> bool:

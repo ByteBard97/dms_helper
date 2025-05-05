@@ -112,4 +112,10 @@ class UserSpeechWidget(QTextEdit):
         """Update CSS pixel size proportionally to the global application font."""
         factor: float = font.pointSize() / self._base_pt if self._base_pt else 1.0
         px: int = max(8, int(round(self._base_px * factor)))
+        # Apply font to widget for placeholder & basic text rendering
+        font_copy = QFont(font)  # create copy to modify pixel size for widget font
+        font_copy.setPointSizeF(font.pointSizeF())
+        self.setFont(font_copy)
+
+        # Style sheet ensures HTML-rendered content inside QTextEdit matches scale
         self.setStyleSheet(f"font-size: {px}px;") 

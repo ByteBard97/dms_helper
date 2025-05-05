@@ -19,13 +19,13 @@
     },
     "ui_settings": {
         "show_user_speech": true,
-        "font_step": 8
+        "font_step": 4
     },
     "session_state": {
         "last_audio_position_sec": 0.0
     },
     "audio_settings": {
-        "last_playback_position": 1035.52,
+        "last_playback_position": 1289.984,
         "input_source": "File"
     },
     "dm_actions": {
@@ -33,6 +33,6 @@
         "default_quantity": 10
     },
     "transcription": {
-        "min_sentences": 5
+        "min_sentences": 10
     }
 }

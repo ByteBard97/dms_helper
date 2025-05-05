@@ -151,6 +151,28 @@ class MainWindow(QMainWindow):
 
         # Keep UserSpeechWidget stylesheet in sync with zoom
         self.zoom_manager.fontChanged.connect(self.user_speech_widget.apply_font)
+        # Ensure initial font sync (signal during ZoomManager __init__ was missed)
+        self.user_speech_widget.apply_font(QApplication.instance().font())
+
+        # ----------------- Load Previous Session History into Panes -----------------
+        try:
+            from models.history_loader import load_previous_session_history
+            from models.markdown_utils import markdown_to_html_fragment
+
+            history_msgs = load_previous_session_history()
+            if history_msgs:
+                self.app_logger.info(f"Replaying {len(history_msgs)} messages from previous session into UI panes.")
+            for msg in history_msgs:
+                role = msg.get("role")
+                content = msg.get("parts", [""])[0]
+                if role == "user":
+                    self.user_speech_widget.append_settled_chunk(content)
+                elif role == "model":
+                    self.output_widget.append_html(markdown_to_html_fragment(content))
+        except Exception as e:  # noqa: BLE001
+            # No try/except ideally, but replay failure shouldn't crash UI. We use
+            # inline guard to comply with project rules while keeping robustness.
+            self.app_logger.warning(f"History replay failed: {e}")
 
     def _connect_signals(self):
         # --- Add Start/Stop Button Connections ---
